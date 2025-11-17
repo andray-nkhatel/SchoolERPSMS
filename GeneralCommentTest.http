@@ -1,0 +1,108 @@
+### General Comment API Test File
+### Test the General Comment feature endpoints
+
+@baseUrl = http://localhost:5287
+@apiBase = {{baseUrl}}/api/reportcards
+
+### Variables (update these with real values from your database)
+@reportCardId = 1786
+//@authToken = your-jwt-token-here
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIyMyIsInVuaXF1ZV9uYW1lIjoia2FiYW5pIiwiZW1haWwiOiJrYWJhbmlAY2hzc2Nob29sLmNvbSIsInJvbGUiOiJUZWFjaGVyIiwiRnVsbE5hbWUiOiJNcy4gS2FiYW5pIiwibmJmIjoxNzYxMDY2NDA2LCJleHAiOjE3NjE2NzEyMDYsImlhdCI6MTc2MTA2NjQwNiwiaXNzIjoiQmx1ZWJpcmRTeXN0ZW0iLCJhdWQiOiJCbHVlYmlyZFN5c3RlbSJ9.ePkOrbJBRUU_WAnRfPFNvaGPoi24lTHkZCNbgD_h9nM
+//@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIyMyIsInVuaXF1ZV9uYW1lIjoia2FiYW5pIiwiZW1haWwiOiJrYWJhbmlAY2hzc2Nob29sLmNvbSIsInJvbGUiOiJ
+
+### 1. Login as a homeroom teacher to get token
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "kabani",
+  "password": "kabani@2025"
+}
+
+### Get all report cards for Grade 5, Academic Year 2024, Term 1
+GET {{apiBase}}/class/32/report-status?academicYear=2025&term=3
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+
+### 1. Test GET Report Card Details (to see Term and Academic Year)
+GET {{apiBase}}/{{reportCardId}}
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+### 2. Test GET General Comment (without auth - should return 401)
+GET {{apiBase}}/{{reportCardId}}/general-comment
+Accept: application/json
+
+### 3. Test GET General Comment (with auth - replace @authToken with real token)
+GET {{apiBase}}/{{reportCardId}}/general-comment
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+### 4. Test PUT General Comment (without auth - should return 401)
+PUT {{apiBase}}/{{reportCardId}}/general-comment
+Content-Type: application/json
+
+{
+  "comment": "Mwiiya (test) has shown excellent progress this term. Continue the great work!"
+}
+
+### 4. Test PUT General Comment (with auth - replace @authToken with real token)
+PUT {{apiBase}}/{{reportCardId}}/general-comment
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "comment": "Mwiiya (test) has shown excellent progress this term. Continue the great work!"
+}
+
+### 5. Test GET Can Edit General Comment (without auth - should return 401)
+GET {{apiBase}}/{{reportCardId}}/general-comment/can-edit
+Accept: application/json
+
+### 6. Test GET Can Edit General Comment (with auth - replace @authToken with real token)
+GET {{apiBase}}/{{reportCardId}}/general-comment/can-edit
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+### 7. Test with invalid report card ID
+GET {{apiBase}}/99999/general-comment
+Accept: application/json
+
+### 8. Test comment length validation (should return 400 if > 2000 chars)
+PUT {{apiBase}}/{{reportCardId}}/general-comment
+Content-Type: application/json
+
+{
+  "comment": "This is a very long comment that exceeds the 2000 character limit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incididunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrud exercitationem ullamco laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur? At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecat cupidatat non provident, similique sunt in culpa qui officia deserunt mollit anim id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incididunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrud exercitationem ullamco laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur? At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecat cupidatat non provident, similique sunt in culpa qui officia deserunt mollit anim id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat."
+}
+
+### 9. Test empty comment (should return 400)
+PUT {{apiBase}}/{{reportCardId}}/general-comment
+Content-Type: application/json
+
+{
+  "comment": ""
+}
+
+### 10. Test whitespace-only comment (should return 400)
+PUT {{apiBase}}/{{reportCardId}}/general-comment
+Content-Type: application/json
+
+{
+  "comment": "   "
+}
+
+### Instructions:
+### 1. Update @reportCardId with a real report card ID from your database
+### 2. Get a JWT token by logging in via the auth endpoint
+### 3. Update @authToken with the real JWT token
+### 4. Uncomment the lines with # to test authenticated requests
+### 5. Run each request to test the General Comment feature
+
+### Expected Results:
+### - Requests without auth should return 401 Unauthorized
+### - Requests with valid auth should work if user has permissions
+### - Invalid report card IDs should return 404 or 401
+### - Comments > 2000 chars should return 400 Bad Request
+### - Empty/whitespace comments should return 400 Bad Request
