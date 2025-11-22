@@ -49,22 +49,22 @@ namespace BluebirdCore.Services
 
                 // Check for teacher by username OR email to avoid duplicates
                 var teacherExists = await _context.Users.AnyAsync(u => 
-                    u.Username == "mwiindec" || u.Email == "clement.mwiinde@chs.edu");
+                    u.Username == "mutale" || u.Email == "mutale@lubwe.sch.edu");
                 //_logger.LogInformation($"🔍 Teacher 'mwiindec' or email 'clement.mwiinde@chs.edu' exists: {teacherExists}");
 
                 if (!teacherExists)
                 {
                     //_logger.LogInformation("➕ Creating teacher user...");
                     
-                    var passwordHash = BCrypt.Net.BCrypt.HashPassword("mwiindec123");
+                    var passwordHash = BCrypt.Net.BCrypt.HashPassword("mutale123");
                    // _logger.LogInformation($"🔐 Generated password hash: {passwordHash.Substring(0, 20)}...");
 
                     var teacherUser = new User
                     {
-                        Username = "mwiindec",
+                        Username = "mutale",
                         PasswordHash = passwordHash,
-                        FullName = "Clement Mwiinde",
-                        Email = "clement.mwiinde@chs.edu",
+                        FullName = "Mr. Mutale",
+                        Email = "mutale@lubwe.sch.edu",
                         Role = UserRole.Teacher,
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
@@ -78,13 +78,13 @@ namespace BluebirdCore.Services
                         //_logger.LogInformation("✅ Teacher created successfully");
                         
                         // Verify the user was created
-                        var createdUser = await _context.Users.FirstOrDefaultAsync(u => u.Username == "mwiindec");
+                        var createdUser = await _context.Users.FirstOrDefaultAsync(u => u.Username == "mutale");
                         if (createdUser != null)
                         {
                            // _logger.LogInformation($"✅ Verification: Teacher found with ID {createdUser.Id}");
                             
                             // Test password verification
-                            var passwordTest = BCrypt.Net.BCrypt.Verify("mwiindec123", createdUser.PasswordHash);
+                            var passwordTest = BCrypt.Net.BCrypt.Verify("mutale123", createdUser.PasswordHash);
                             // _logger.LogInformation($"🔐 Password verification test: {passwordTest}");
                         }
                         else
@@ -104,7 +104,7 @@ namespace BluebirdCore.Services
                     
                     // Find existing teacher by username or email
                     var existingTeacher = await _context.Users.FirstOrDefaultAsync(u => 
-                        u.Username == "mwiindec" || u.Email == "clement.mwiinde@chs.edu");
+                        u.Username == "mutale" || u.Email == "mutale@lubwe.sch.edu");
                     
                     if (existingTeacher != null)
                     {
@@ -120,24 +120,24 @@ namespace BluebirdCore.Services
                         // Update user details if needed (in case found by email but username is different)
                         bool needsUpdate = false;
                         
-                        if (existingTeacher.Username != "mwiindec")
+                        if (existingTeacher.Username != "mutale")
                         {
                             //_logger.LogInformation($"🔄 Updating username from '{existingTeacher.Username}' to 'mwiindec'");
-                            existingTeacher.Username = "mwiindec";
+                            existingTeacher.Username = "mutale";
                             needsUpdate = true;
                         }
                         
-                        if (existingTeacher.Email != "clement.mwiinde@chs.edu")
+                        if (existingTeacher.Email != "mutale@lubwe.sch.edu")
                         {
                             //_logger.LogInformation($"🔄 Updating email from '{existingTeacher.Email}' to 'clement.mwiinde@chs.edu'");
-                            existingTeacher.Email = "clement.mwiinde@chs.edu";
+                            existingTeacher.Email = "mutale@lubwe.sch.edu";
                             needsUpdate = true;
                         }
                         
-                        if (existingTeacher.FullName != "Clement Mwiinde")
+                        if (existingTeacher.FullName != "Mr. Mutale")
                         {
                             //_logger.LogInformation($"🔄 Updating full name from '{existingTeacher.FullName}' to 'Clement Mwiinde'");
-                            existingTeacher.FullName = "Clement Mwiinde";
+                            existingTeacher.FullName = "Mr. Mutale";
                             needsUpdate = true;
                         }
                         
@@ -149,13 +149,13 @@ namespace BluebirdCore.Services
                         }
                         
                         // Test password verification on existing user
-                        var passwordTest = BCrypt.Net.BCrypt.Verify("mwiindec123", existingTeacher.PasswordHash);
+                        var passwordTest = BCrypt.Net.BCrypt.Verify("mutale23", existingTeacher.PasswordHash);
                         //_logger.LogInformation($"🔐 Existing user password verification: {passwordTest}");
                         
                         if (!passwordTest)
                         {
                             //_logger.LogWarning("⚠️ Password verification failed for existing teacher - updating password");
-                            existingTeacher.PasswordHash = BCrypt.Net.BCrypt.HashPassword("mwiindec123");
+                            existingTeacher.PasswordHash = BCrypt.Net.BCrypt.HashPassword("mutale123");
                             needsUpdate = true;
                         }
                         
@@ -179,6 +179,7 @@ namespace BluebirdCore.Services
                 var studentCount = await _context.Students.CountAsync();
                 _logger.LogInformation($"📊 Current student count: {studentCount}");
 
+                Student? johnMbuki = null;
                 if (studentCount == 0)
                 {
                     //_logger.LogInformation("➕ Creating sample student...");
@@ -190,7 +191,7 @@ namespace BluebirdCore.Services
                         StudentNumber = "24001",
                         DateOfBirth = new DateTime(2010, 5, 15),
                         Gender = "Male",
-                        GradeId = 2, // Grade 1
+                        GradeId = 32, // Grade 1
                         GuardianName = "John Doe",
                         GuardianPhone = "+260123456789",
                         Address = "123 Sample Street, Lusaka",
@@ -202,6 +203,7 @@ namespace BluebirdCore.Services
                     try
                     {
                         await _context.SaveChangesAsync();
+                        johnMbuki = sampleStudent;
                         //_logger.LogInformation("✅ Sample student created successfully");
                     }
                     catch (Exception studentEx)
@@ -213,6 +215,15 @@ namespace BluebirdCore.Services
                 else
                 {
                     //_logger.LogInformation("ℹ️ Students already exist, skipping student creation");
+                    // Find John Mbuki if he exists
+                    johnMbuki = await _context.Students
+                        .FirstOrDefaultAsync(s => s.FirstName == "John" && s.LastName == "Mbuki");
+                }
+
+                // Seed exam scores for John Mbuki if he exists
+                if (johnMbuki != null)
+                {
+                    await SeedStudentExamScoresAsync(johnMbuki);
                 }
 
                 // Final verification
@@ -306,6 +317,140 @@ namespace BluebirdCore.Services
             catch (Exception ex)
             {
                 //_logger.LogError(ex, "❌ Error seeding Baby Class Skills");
+                // Don't throw - this is not critical for app startup
+            }
+        }
+
+        private async Task SeedStudentExamScoresAsync(Student student)
+        {
+            try
+            {
+                // Check if marks already exist for this student for Term 3, End-of-Term, 2025
+                var existingMarks = await _context.ExamScores
+                    .AnyAsync(es => es.StudentId == student.Id && 
+                                   es.AcademicYear == 2025 && 
+                                   es.Term == 3);
+
+                if (existingMarks)
+                {
+                    _logger.LogInformation($"ℹ️ Exam scores already exist for {student.FullName} for Term 3, 2025. Skipping seeding.");
+                    return;
+                }
+
+                // Get End-of-Term exam type
+                var endOfTermExamType = await _context.ExamTypes
+                    .FirstOrDefaultAsync(et => et.Name == "End-of-Term");
+
+                if (endOfTermExamType == null)
+                {
+                    _logger.LogWarning("⚠️ End-of-Term exam type not found. Cannot seed exam scores.");
+                    return;
+                }
+
+                // Get admin user for RecordedBy
+                var adminUser = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Username == "admin");
+
+                if (adminUser == null)
+                {
+                    _logger.LogWarning("⚠️ Admin user not found. Cannot seed exam scores.");
+                    return;
+                }
+
+                // Get common subjects (Math, English, Science, Social Studies)
+                var math = await _context.Subjects.FirstOrDefaultAsync(s => s.Name == "Mathematics" || s.Name.Contains("Math"));
+                var english = await _context.Subjects.FirstOrDefaultAsync(s => s.Name == "English");
+                var science = await _context.Subjects.FirstOrDefaultAsync(s => s.Name == "Science" || s.Name == "Integrated Science");
+                var socialStudies = await _context.Subjects.FirstOrDefaultAsync(s => s.Name == "Social Studies");
+
+                var examScores = new List<ExamScore>();
+
+                // Add Math score
+                if (math != null)
+                {
+                    examScores.Add(new ExamScore
+                    {
+                        StudentId = student.Id,
+                        SubjectId = math.Id,
+                        ExamTypeId = endOfTermExamType.Id,
+                        GradeId = student.GradeId,
+                        Score = 78,
+                        IsAbsent = false,
+                        AcademicYear = 2025,
+                        Term = 3,
+                        RecordedAt = DateTime.UtcNow,
+                        RecordedBy = adminUser.Id
+                    });
+                }
+
+                // Add English score
+                if (english != null)
+                {
+                    examScores.Add(new ExamScore
+                    {
+                        StudentId = student.Id,
+                        SubjectId = english.Id,
+                        ExamTypeId = endOfTermExamType.Id,
+                        GradeId = student.GradeId,
+                        Score = 82,
+                        IsAbsent = false,
+                        AcademicYear = 2025,
+                        Term = 3,
+                        RecordedAt = DateTime.UtcNow,
+                        RecordedBy = adminUser.Id
+                    });
+                }
+
+                // Add Science score
+                if (science != null)
+                {
+                    examScores.Add(new ExamScore
+                    {
+                        StudentId = student.Id,
+                        SubjectId = science.Id,
+                        ExamTypeId = endOfTermExamType.Id,
+                        GradeId = student.GradeId,
+                        Score = 74,
+                        IsAbsent = false,
+                        AcademicYear = 2025,
+                        Term = 3,
+                        RecordedAt = DateTime.UtcNow,
+                        RecordedBy = adminUser.Id
+                    });
+                }
+
+                // Add Social Studies score
+                if (socialStudies != null)
+                {
+                    examScores.Add(new ExamScore
+                    {
+                        StudentId = student.Id,
+                        SubjectId = socialStudies.Id,
+                        ExamTypeId = endOfTermExamType.Id,
+                        GradeId = student.GradeId,
+                        Score = 69,
+                        IsAbsent = false,
+                        AcademicYear = 2025,
+                        Term = 3,
+                        RecordedAt = DateTime.UtcNow,
+                        RecordedBy = adminUser.Id
+                    });
+                }
+
+                if (examScores.Any())
+                {
+                    _context.ExamScores.AddRange(examScores);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation($"✅ Seeded {examScores.Count} exam scores for {student.FullName} (Term 3, End-of-Term, 2025)");
+                }
+                else
+                {
+                    _logger.LogWarning($"⚠️ No subjects found to seed exam scores for {student.FullName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"❌ Error seeding exam scores for {student.FullName}");
                 // Don't throw - this is not critical for app startup
             }
         }

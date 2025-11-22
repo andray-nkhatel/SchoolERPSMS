@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using BluebirdCore.Data;
 using BluebirdCore.Services;
+using BluebirdCore.Models;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.IdentityModel.Tokens.Jwt;
@@ -25,6 +26,10 @@ builder.Services.AddDbContext<SchoolDbContext>(options =>
 
 builder.Services.AddMemoryCache();
 
+// ===== CONFIGURATION BINDING =====
+builder.Services.Configure<SchoolSettings>(
+    builder.Configuration.GetSection(SchoolSettings.SectionName));
+
 // ===== SERVICES REGISTRATION =====
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
@@ -39,8 +44,12 @@ builder.Services.AddScoped<IPdfMergeService, PdfMergeService>();
 builder.Services.AddScoped<MarkSchedulePdfService>();
 builder.Services.AddScoped<ExamAnalysisPdfService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ISmsService, SmsService>();
 builder.Services.AddScoped<IBabyClassSkillService, BabyClassSkillService>();
 builder.Services.AddScoped<IHomeroomService, HomeroomService>();
+
+// Add HttpClientFactory for SMS service
+builder.Services.AddHttpClient();
 
 // Add Hangfire services
 builder.Services.AddHangfire(configuration => configuration                                         
@@ -105,6 +114,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // ===== SWAGGER CONFIGURATION =====
+var schoolSettings = new SchoolSettings();
+builder.Configuration.GetSection(SchoolSettings.SectionName).Bind(schoolSettings);
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -115,8 +127,8 @@ builder.Services.AddSwaggerGen(c =>
         Description = "A comprehensive School Management System API for managing students, teachers, subjects, exams, and report cards",
         Contact = new OpenApiContact
         {
-            Name = "Bluebird API",
-            Email = "itsupport@chudleighhouseschool.com"
+            Name = "School Management System",
+            Email = schoolSettings.Email
         }
     });
 
@@ -154,17 +166,14 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // ===== CORS CONFIGURATION =====
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
+    ?? new[] { "http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000" };
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins(
-                "https://bluebird.chudleighhouseschool.com",  // Production frontend
-                "http://localhost:5173",                       // Local development (Vite default)
-                "http://localhost:3000",                       // Alternative local dev port
-                "http://127.0.0.1:5173",                        // Alternative localhost format
-                "http://127.0.0.1:3000"                        // Alternative localhost format
-            )
+        policy.WithOrigins(corsOrigins)
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();  // Required for JWT tokens in Authorization header

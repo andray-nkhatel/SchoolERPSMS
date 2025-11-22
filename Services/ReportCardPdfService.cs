@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using BluebirdCore.Data;
 using QuestPDF.Previewer;
 using BluebirdCore.DTOs;
+using BluebirdCore.Models;
 
 namespace BluebirdCore.Services
 {
@@ -17,12 +18,18 @@ namespace BluebirdCore.Services
         private readonly SchoolDbContext _context;
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<ReportCardPdfService> _logger;
+        private readonly SchoolSettings _schoolSettings;
 
         public ReportCardPdfService(IConfiguration configuration, SchoolDbContext context, ILogger<ReportCardPdfService> logger, IServiceProvider serviceProvider)
         {
             _context = context;
             _logger = logger;
             _serviceProvider = serviceProvider;
+            
+            // Bind school settings from configuration
+            _schoolSettings = new SchoolSettings();
+            configuration.GetSection(SchoolSettings.SectionName).Bind(_schoolSettings);
+            
             // Configure QuestPDF license
             QuestPDF.Settings.License = LicenseType.Community;
         }
@@ -403,7 +410,7 @@ namespace BluebirdCore.Services
         //         {
         //             container.Page(page =>
         //                 {
-        //                     ElcConfigureBasicPage(page);
+        //                     ElcConfigureBasicPage(page, _schoolSettings.WatermarkLogoPath);
 
         //                     // Remove page.Header() and put everything in Content
         //                     page.Content()
@@ -419,7 +426,7 @@ namespace BluebirdCore.Services
         //                         .PaddingRight(20)
         //                         .Column(headerColumn =>
         //                         {
-        //                             headerColumn.Item().Text("CHUDLEIGH HOUSE SCHOOL").FontSize(18).Bold().AlignCenter();
+        //                             headerColumn.Item().Text(_schoolSettings.Name.ToUpper()).FontSize(18).Bold().AlignCenter();
         //                             headerColumn.Item().Text("PCELC REPORT CARD").FontSize(14).AlignCenter();
         //                             headerColumn.Item().PaddingTop(10).LineHorizontal(1);
         //                             AddStudentInformation(headerColumn, student, academicYear, term);
@@ -485,7 +492,7 @@ namespace BluebirdCore.Services
         //             // PAGE 2: Administrative Section & Grading Scale (without header)
         //             container.Page(page =>
         //             {
-        //                 ElcConfigureBasicPage(page);
+        //                 ElcConfigureBasicPage(page, _schoolSettings.WatermarkLogoPath);
 
         //                 page.Content().Border(5).BorderColor(Colors.Blue.Darken2).Padding(20).Column(column =>
         //                 {
@@ -498,17 +505,17 @@ namespace BluebirdCore.Services
 
         //                     column.Item().PaddingTop(170).Column(contact =>
         //                     {
-        //                         contact.Item().Text("Chudleigh House School").FontSize(14).Bold().AlignCenter();
+        //                         contact.Item().Text(_schoolSettings.Name).FontSize(14).Bold().AlignCenter();
         //                         contact.Item().Text("Plot 11289, Lusaka, Zambia").FontSize(8).AlignCenter();
         //                         contact.Item().Text("Tel: +260-955-876333  | +260-953-074465").FontSize(12).AlignCenter().FontSize(8);
-        //                         contact.Item().Text("Email: info@chudleighhouseschool.com").AlignCenter().FontSize(8);
-        //                         contact.Item().Text("Website: www.chudleighhouseschool.com").FontSize(8).AlignCenter();
+        //                         contact.Item().Text($"Email: {schoolSettings.Email}").AlignCenter().FontSize(8);
+        //                         contact.Item().Text($"Website: {schoolSettings.Website}").FontSize(8).AlignCenter();
         //                     });
         //                 });
         //             });
 
         //             // PAGE 3: Cover Page (without header)
-        //             AddCoverPageELC(container, student, academicYear, term, "PCELC");
+        //             AddCoverPageELC(container, student, academicYear, term, "PCELC", _schoolSettings);
 
         //         });
         //         document.GeneratePdf(ms);
@@ -573,7 +580,7 @@ namespace BluebirdCore.Services
                 // Capture the teacher comment for use in the page creation
                 var pageTeacherComment = documentTeacherComment;
                 page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(10)); // Add default font
-                ElcConfigureBasicPage(page);
+                ElcConfigureBasicPage(page, _schoolSettings.WatermarkLogoPath);
 
                 page.Content()
                 .Border(5)
@@ -588,7 +595,7 @@ namespace BluebirdCore.Services
                     .PaddingRight(20)
                     .Column(headerColumn =>
                     {
-                        headerColumn.Item().Text("CHUDLEIGH HOUSE SCHOOL").FontSize(18).Bold().AlignCenter();
+                        headerColumn.Item().Text(_schoolSettings.Name.ToUpper()).FontSize(18).Bold().AlignCenter();
                         headerColumn.Item().Text("PCELC REPORT CARD").FontSize(14).AlignCenter();
                         //headerColumn.Item().PaddingTop(10).LineHorizontal(1);
                         //AddStudentInformation(headerColumn, student, academicYear, term);
@@ -635,7 +642,7 @@ namespace BluebirdCore.Services
             container.Page(page =>
             {
                 page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(10)); // Add default font
-                ElcConfigureBasicPage(page);
+                ElcConfigureBasicPage(page, _schoolSettings.WatermarkLogoPath);
 
                 page.Content().Border(5).BorderColor(Colors.Blue.Darken2).Padding(20).Column(column =>
                 {
@@ -647,17 +654,17 @@ namespace BluebirdCore.Services
 
                     column.Item().PaddingTop(170).Column(contact =>
                     {
-                        contact.Item().Text("Chudleigh House School").FontSize(14).Bold().AlignCenter();
+                        contact.Item().Text(_schoolSettings.Name).FontSize(14).Bold().AlignCenter();
                         contact.Item().Text("Plot 11289, Lusaka, Zambia").FontSize(8).AlignCenter();
                         contact.Item().Text("Tel: +260-955-876333  | +260-953-074465").FontSize(12).AlignCenter().FontSize(8);
-                        contact.Item().Text("Email: info@chudleighhouseschool.com").AlignCenter().FontSize(8);
-                        contact.Item().Text("Website: www.chudleighhouseschool.com").FontSize(8).AlignCenter();
+                        contact.Item().Text($"Email: {_schoolSettings.Email}").AlignCenter().FontSize(8);
+                        contact.Item().Text($"Website: {_schoolSettings.Website}").FontSize(8).AlignCenter();
                     });
                 });
             });
 
             // PAGE 3: Cover Page
-            AddCoverPageELC(container, student, academicYear, term, "PCELC");
+            AddCoverPageELC(container, student, academicYear, term, "PCELC", _schoolSettings);
         });
         
         document.GeneratePdf(ms);
@@ -710,7 +717,7 @@ namespace BluebirdCore.Services
                 {
                     container.Page(page =>
                         {
-                            ElcConfigureBasicPage(page);
+                            ElcConfigureBasicPage(page, _schoolSettings.WatermarkLogoPath);
 
 
 
@@ -729,7 +736,7 @@ namespace BluebirdCore.Services
                                 .PaddingRight(20)
                                 .Column(headerColumn =>
                                 {
-                                    headerColumn.Item().Text("CHUDLEIGH HOUSE SCHOOL").FontSize(18).Bold().AlignCenter();
+                                    headerColumn.Item().Text(_schoolSettings.Name.ToUpper()).FontSize(18).Bold().AlignCenter();
                                     headerColumn.Item().Text("PCELC REPORT CARD").FontSize(14).AlignCenter();
                                     headerColumn.Item().PaddingTop(10).LineHorizontal(1);
                                     AddStudentInformation(headerColumn, student, academicYear, term);
@@ -772,7 +779,7 @@ namespace BluebirdCore.Services
                     // PAGE 2: Administrative Section & Grading Scale (without header)
                     container.Page(page =>
                     {
-                        ElcConfigureBasicPage(page);
+                        ElcConfigureBasicPage(page, _schoolSettings.WatermarkLogoPath);
 
                         page.Content().Border(5).BorderColor(Colors.Blue.Darken2).Padding(20).Column(column =>
                         {
@@ -785,17 +792,17 @@ namespace BluebirdCore.Services
 
                             column.Item().PaddingTop(170).Column(contact =>
                             {
-                                contact.Item().Text("Chudleigh House School").FontSize(14).Bold().AlignCenter();
+                                contact.Item().Text(_schoolSettings.Name).FontSize(14).Bold().AlignCenter();
                                 contact.Item().Text("Plot 11289, Lusaka, Zambia").FontSize(8).AlignCenter();
                                 contact.Item().Text("Tel: +260-955-876333  | +260-953-074465").FontSize(12).AlignCenter().FontSize(8);
-                                contact.Item().Text("Email: info@chudleighhouseschool.com").AlignCenter().FontSize(8);
-                                contact.Item().Text("Website: www.chudleighhouseschool.com").FontSize(8).AlignCenter();
+                                contact.Item().Text($"Email: {_schoolSettings.Email}").AlignCenter().FontSize(8);
+                                contact.Item().Text($"Website: {_schoolSettings.Website}").FontSize(8).AlignCenter();
                             });
                         });
                     });
 
                     // PAGE 3: Cover Page (without header)
-                    AddCoverPageELC(container, student, academicYear, term, "PCELC");
+                    AddCoverPageELC(container, student, academicYear, term, "PCELC", _schoolSettings);
 
                 });
                 document.GeneratePdf(ms);
@@ -848,7 +855,7 @@ namespace BluebirdCore.Services
                         // PAGE 1: Student Information & Scores (Part 1)
                         container.Page(page =>
                         {
-                            ConfigureBasicPage(page);
+                            ConfigureBasicPage(page, _schoolSettings.WatermarkLogoPath);
 
                             // Remove page.Header() and put everything in Content
                             page.Content()
@@ -864,7 +871,7 @@ namespace BluebirdCore.Services
                                 .PaddingRight(20)
                                 .Column(headerColumn =>
                                 {
-                                    headerColumn.Item().Text("CHUDLEIGH HOUSE SCHOOL").FontSize(18).Bold().AlignCenter();
+                                    headerColumn.Item().Text(_schoolSettings.Name.ToUpper()).FontSize(18).Bold().AlignCenter();
                                     headerColumn.Item().Text("LOWER-PRIMARY SCHOOL REPORT CARD").FontSize(14).AlignCenter();
                                     headerColumn.Item().PaddingTop(10).LineHorizontal(1);
                                     //AddStudentInformation(headerColumn, student, academicYear, term);
@@ -907,7 +914,7 @@ namespace BluebirdCore.Services
                         // PAGE 2: Administrative Section & Grading Scale (without header)
                         container.Page(page =>
                         {
-                            ConfigureBasicPage(page);
+                            ConfigureBasicPage(page, _schoolSettings.WatermarkLogoPath);
 
                             page.Content().Border(5).BorderColor(Colors.Black).Padding(20).Column(column =>
                             {
@@ -920,17 +927,17 @@ namespace BluebirdCore.Services
 
                                 column.Item().PaddingTop(170).Column(contact =>
                                 {
-                                    contact.Item().Text("Chudleigh House School").FontSize(14).Bold().AlignCenter();
+                                    contact.Item().Text(_schoolSettings.Name).FontSize(14).Bold().AlignCenter();
                                     contact.Item().Text("Plot 11289, Lusaka, Zambia").FontSize(8).AlignCenter();
                                     contact.Item().Text("Tel: +260-955-876333  | +260-953-074465").FontSize(12).AlignCenter().FontSize(8);
-                                    contact.Item().Text("Email: info@chudleighhouseschool.com").AlignCenter().FontSize(8);
-                                    contact.Item().Text("Website: www.chudleighhouseschool.com").FontSize(8).AlignCenter();
+                                    contact.Item().Text($"Email: {_schoolSettings.Email}").AlignCenter().FontSize(8);
+                                    contact.Item().Text($"Website: {_schoolSettings.Website}").FontSize(8).AlignCenter();
                                 });
                             });
                         });
 
                         // PAGE 3: Cover Page (without header)
-                        AddCoverPage(container, student, academicYear, term, "PRIMARY SCHOOL");
+                        AddCoverPage(container, student, academicYear, term, "PRIMARY SCHOOL", _schoolSettings);
 
                     }).GeneratePdf(ms);
                     _logger.LogInformation("PDF generated successfully");
@@ -989,7 +996,7 @@ namespace BluebirdCore.Services
                         // PAGE 1: Student Information & Scores (Part 1)
                         container.Page(page =>
                         {
-                            ConfigureBasicPage(page);
+                            ConfigureBasicPage(page, _schoolSettings.WatermarkLogoPath);
 
                             // Remove page.Header() and put everything in Content
                             page.Content()
@@ -1005,7 +1012,7 @@ namespace BluebirdCore.Services
                                 .PaddingRight(20)
                                 .Column(headerColumn =>
                                 {
-                                    headerColumn.Item().Text("CHUDLEIGH HOUSE SCHOOL").FontSize(18).Bold().AlignCenter();
+                                    headerColumn.Item().Text(_schoolSettings.Name.ToUpper()).FontSize(18).Bold().AlignCenter();
                                     headerColumn.Item().Text("UPPER-PRIMARY SCHOOL REPORT CARD").FontSize(14).AlignCenter();
                                     headerColumn.Item().PaddingTop(10).LineHorizontal(1);
                                     //AddStudentInformation(headerColumn, student, academicYear, term);
@@ -1057,7 +1064,7 @@ namespace BluebirdCore.Services
                         // PAGE 2: Administrative Section & Grading Scale (without header)
                         container.Page(page =>
                         {
-                            ConfigureBasicPage(page);
+                            ConfigureBasicPage(page, _schoolSettings.WatermarkLogoPath);
 
                             page.Content().Border(5).BorderColor(Colors.Black).Padding(20).Column(column =>
                             {
@@ -1070,17 +1077,17 @@ namespace BluebirdCore.Services
 
                                 column.Item().PaddingTop(170).Column(contact =>
                                 {
-                                    contact.Item().Text("Chudleigh House School").FontSize(14).Bold().AlignCenter();
+                                    contact.Item().Text(_schoolSettings.Name).FontSize(14).Bold().AlignCenter();
                                     contact.Item().Text("Plot 11289, Lusaka, Zambia").FontSize(8).AlignCenter();
                                     contact.Item().Text("Tel: +260-955-876333  | +260-953-074465").FontSize(12).AlignCenter().FontSize(8);
-                                    contact.Item().Text("Email: info@chudleighhouseschool.com").AlignCenter().FontSize(8);
-                                    contact.Item().Text("Website: www.chudleighhouseschool.com").FontSize(8).AlignCenter();
+                                    contact.Item().Text($"Email: {_schoolSettings.Email}").AlignCenter().FontSize(8);
+                                    contact.Item().Text($"Website: {_schoolSettings.Website}").FontSize(8).AlignCenter();
                                 });
                             });
                         });
 
                         // PAGE 3: Cover Page (without header)
-                        AddCoverPage(container, student, academicYear, term, "UPPER-PRIMARY SCHOOL");
+                        AddCoverPage(container, student, academicYear, term, "UPPER-PRIMARY SCHOOL", _schoolSettings);
 
                     }).GeneratePdf(ms);
                     _logger.LogInformation("PDF generated successfully");
@@ -1138,7 +1145,7 @@ namespace BluebirdCore.Services
 
                     container.Page(page =>
                         {
-                            ConfigureBasicPageSec(page);
+                            ConfigureBasicPageSec(page, _schoolSettings.WatermarkLogoPath);
 
                             // Remove page.Header() and put everything in Content
                             page.Content()
@@ -1154,7 +1161,7 @@ namespace BluebirdCore.Services
                                 .PaddingRight(20)
                                 .Column(headerColumn =>
                                 {
-                                    headerColumn.Item().Text("CHUDLEIGH HOUSE SCHOOL").FontSize(18).Bold().AlignCenter();
+                                    headerColumn.Item().Text(_schoolSettings.Name.ToUpper()).FontSize(18).Bold().AlignCenter();
                                     headerColumn.Item().Text("JUNIOR-SECONDARY SCHOOL REPORT CARD").FontSize(14).AlignCenter();
                                     headerColumn.Item().PaddingTop(10).LineHorizontal(1);
                                     // AddStudentInformation(headerColumn, student, academicYear, term);
@@ -1199,7 +1206,7 @@ namespace BluebirdCore.Services
 
                     container.Page(page =>
                     {
-                        ConfigureBasicPage(page);
+                        ConfigureBasicPage(page, _schoolSettings.WatermarkLogoPath);
 
                         page.Content().Border(5).BorderColor(Colors.Black).Padding(20).Column(column =>
                         {
@@ -1212,17 +1219,17 @@ namespace BluebirdCore.Services
 
                             column.Item().PaddingTop(20).Column(contact =>
                             {
-                                contact.Item().Text("Chudleigh House School").FontSize(14).Bold().AlignCenter();
+                                contact.Item().Text(_schoolSettings.Name).FontSize(14).Bold().AlignCenter();
                                 contact.Item().Text("Plot 11289, Lusaka, Zambia").FontSize(8).AlignCenter();
                                 contact.Item().Text("Tel: +260-955-876333  | +260-953-074465").FontSize(12).AlignCenter().FontSize(8);
-                                contact.Item().Text("Email: info@chudleighhouseschool.com").AlignCenter().FontSize(8);
-                                contact.Item().Text("Website: www.chudleighhouseschool.com").FontSize(8).AlignCenter();
+                                contact.Item().Text($"Email: {_schoolSettings.Email}").AlignCenter().FontSize(8);
+                                contact.Item().Text($"Website: {_schoolSettings.Website}").FontSize(8).AlignCenter();
                             });
                         });
                     });
 
                     // PAGE 4: Cover Page
-                    AddCoverPageSec(container, student, academicYear, term, "JUNIOR-SECONDARY SCHOOL");
+                    AddCoverPageSec(container, student, academicYear, term, "JUNIOR-SECONDARY SCHOOL", _schoolSettings);
 
                 }).GeneratePdf(ms);
                 return ms.ToArray();
@@ -1274,7 +1281,7 @@ namespace BluebirdCore.Services
 
                     container.Page(page =>
                         {
-                            ConfigureBasicPageSec(page);
+                            ConfigureBasicPageSec(page, _schoolSettings.WatermarkLogoPath);
 
                             // Remove page.Header() and put everything in Content
                             page.Content()
@@ -1290,7 +1297,7 @@ namespace BluebirdCore.Services
                                 .PaddingRight(20)
                                 .Column(headerColumn =>
                                 {
-                                    headerColumn.Item().Text("CHUDLEIGH HOUSE SCHOOL").FontSize(18).Bold().AlignCenter();
+                                    headerColumn.Item().Text(_schoolSettings.Name.ToUpper()).FontSize(18).Bold().AlignCenter();
                                     headerColumn.Item().Text("SENIOR-SECONDARY SCHOOL REPORT CARD").FontSize(14).AlignCenter();
                                     headerColumn.Item().PaddingTop(5).LineHorizontal(1);
                                     // AddStudentInformation(headerColumn, student, academicYear, term);
@@ -1336,7 +1343,7 @@ namespace BluebirdCore.Services
 
                     container.Page(page =>
                     {
-                        ConfigureBasicPage(page);
+                        ConfigureBasicPage(page, _schoolSettings.WatermarkLogoPath);
 
                         page.Content().Border(5).BorderColor(Colors.Black).Padding(20).Column(column =>
                         {
@@ -1349,17 +1356,17 @@ namespace BluebirdCore.Services
 
                             column.Item().PaddingTop(20).Column(contact =>
                             {
-                                contact.Item().Text("Chudleigh House School").FontSize(14).Bold().AlignCenter();
+                                contact.Item().Text(_schoolSettings.Name).FontSize(14).Bold().AlignCenter();
                                 contact.Item().Text("Plot 11289, Lusaka, Zambia").FontSize(8).AlignCenter();
                                 contact.Item().Text("Tel: +260-955-876333  | +260-953-074465").FontSize(12).AlignCenter().FontSize(8);
-                                contact.Item().Text("Email: info@chudleighhouseschool.com").AlignCenter().FontSize(8);
-                                contact.Item().Text("Website: www.chudleighhouseschool.com").FontSize(8).AlignCenter();
+                                contact.Item().Text($"Email: {_schoolSettings.Email}").AlignCenter().FontSize(8);
+                                contact.Item().Text($"Website: {_schoolSettings.Website}").FontSize(8).AlignCenter();
                             });
                         });
                     });
 
                     // PAGE 4: Cover Page
-                    AddCoverPageSec(container, student, academicYear, term, "SENIOR-SECONDARY SCHOOL");
+                    AddCoverPageSec(container, student, academicYear, term, "SENIOR-SECONDARY SCHOOL", _schoolSettings);
 
                 }).GeneratePdf(ms);
                 return ms.ToArray();
@@ -1518,7 +1525,7 @@ namespace BluebirdCore.Services
             }
         }
 
-        private static void ConfigureBasicPage(PageDescriptor page)
+        private static void ConfigureBasicPage(PageDescriptor page, string watermarkLogoPath)
         {
             page.Size(PageSizes.A4);
             page.Margin(1.5f, Unit.Centimetre);
@@ -1530,10 +1537,10 @@ namespace BluebirdCore.Services
             .AlignCenter()
             .AlignMiddle()
             .Width(500)
-            .Image("./Media/chs-wm-logo.png");
+            .Image(watermarkLogoPath);
         }
 
-         private static void ConfigureBasicPageSec(PageDescriptor page)
+         private static void ConfigureBasicPageSec(PageDescriptor page, string watermarkLogoPath)
         {
             page.Size(PageSizes.A4);
             page.Margin(1.5f, Unit.Centimetre);
@@ -1545,10 +1552,10 @@ namespace BluebirdCore.Services
             .AlignCenter()
             .AlignMiddle()
             .Width(500)
-            .Image("./Media/chs-wm-logo.png");
+            .Image(watermarkLogoPath);
         }
 
-         private static void ElcConfigureBasicPage(PageDescriptor page)
+         private static void ElcConfigureBasicPage(PageDescriptor page, string watermarkLogoPath)
         {
             page.Size(PageSizes.A4);
             page.Margin(1.5f, Unit.Centimetre);
@@ -2716,22 +2723,22 @@ namespace BluebirdCore.Services
             });
         }
 
-        private static void AddContactInfo(ColumnDescriptor column)
+        private static void AddContactInfo(ColumnDescriptor column, SchoolSettings schoolSettings)
         {
             column.Item().Background(Colors.Grey.Lighten4).PaddingTop(10).Column(contact =>
                     {
-                        contact.Item().Text("Chudleigh House School").FontSize(14).Bold().AlignCenter();
+                        contact.Item().Text(schoolSettings.Name).FontSize(14).Bold().AlignCenter();
                         contact.Item().Text("Plot 11289, Lusaka, Zambia").FontSize(8).AlignCenter();
                         contact.Item().Text("Tel: +260-955-876333  | +260-953-074465").FontSize(12).AlignCenter().FontSize(8);
-                        contact.Item().Text("Email: info@chudleighhouseschool.com").AlignCenter().FontSize(8);
-                        contact.Item().Text("Website: www.chudleighhouseschool.com").FontSize(8).AlignCenter();
+                        contact.Item().Text($"Email: {schoolSettings.Email}").AlignCenter().FontSize(8);
+                        contact.Item().Text($"Website: {schoolSettings.Website}").FontSize(8).AlignCenter();
                     });
 
         }
 
 
 
-        private static void AddCoverPage(IDocumentContainer container, Student student, AcademicYear academicYear, int term, string section)
+        private static void AddCoverPage(IDocumentContainer container, Student student, AcademicYear academicYear, int term, string section, SchoolSettings schoolSettings)
         {
 
             container.Page(page =>
@@ -2740,7 +2747,7 @@ namespace BluebirdCore.Services
                .AlignCenter()
                .AlignMiddle()
                .Width(500)
-               .Image("./Media/chs-wm-logo.png");
+               .Image(schoolSettings.WatermarkLogoPath);
 
                 page.Size(PageSizes.A4);
                 page.Margin(1.5f, Unit.Centimetre);
@@ -2751,9 +2758,9 @@ namespace BluebirdCore.Services
 
                     // School Name
                     column.Item().PaddingTop(30).AlignCenter()
-                        .Text("CHUDLEIGH HOUSE SCHOOL").FontSize(32).Bold().FontColor(Colors.Black);
+                        .Text(schoolSettings.Name.ToUpper()).FontSize(32).Bold().FontColor(Colors.Black);
                     // Logo
-                    column.Item().AlignCenter().Height(120).Image("./Media/chs-logo.png");
+                    column.Item().AlignCenter().Height(120).Image(schoolSettings.LogoPath);
 
                     // School Motto
                     column.Item().PaddingTop(15).AlignCenter()
@@ -2795,8 +2802,8 @@ namespace BluebirdCore.Services
                         //contact.Item().Text("Chudleigh House School").FontSize(14).Bold().AlignCenter();
                         contact.Item().Text("Plot 11289, Lusaka, Zambia").FontSize(8).AlignCenter();
                         contact.Item().Text("Tel: +260-955-876333  | +260-953-074465").FontSize(12).AlignCenter().FontSize(8);
-                        contact.Item().Text("Email: info@chudleighhouseschool.com").AlignCenter().FontSize(8);
-                        contact.Item().Text("Website: www.chudleighhouseschool.com").FontSize(8).AlignCenter();
+                        contact.Item().Text($"Email: {schoolSettings.Email}").AlignCenter().FontSize(8);
+                        contact.Item().Text($"Website: {schoolSettings.Website}").FontSize(8).AlignCenter();
                     });
 
 
@@ -2809,7 +2816,7 @@ namespace BluebirdCore.Services
 
 
 
-        private static void AddCoverPageSec(IDocumentContainer container, Student student, AcademicYear academicYear, int term, string section)
+        private static void AddCoverPageSec(IDocumentContainer container, Student student, AcademicYear academicYear, int term, string section, SchoolSettings schoolSettings)
         {
 
             container.Page(page =>
@@ -2818,7 +2825,7 @@ namespace BluebirdCore.Services
                .AlignCenter()
                .AlignMiddle()
                .Width(500)
-               .Image("./Media/chs-wm-logo.png");
+               .Image(schoolSettings.WatermarkLogoPath);
 
                 page.Size(PageSizes.A4);
                 page.Margin(1.5f, Unit.Centimetre);
@@ -2829,7 +2836,7 @@ namespace BluebirdCore.Services
 
                     // School Name
                     column.Item().PaddingTop(30).AlignCenter()
-                        .Text("CHUDLEIGH HOUSE SCHOOL").FontSize(32).Bold().FontColor(Colors.Black);
+                        .Text(schoolSettings.Name.ToUpper()).FontSize(32).Bold().FontColor(Colors.Black);
                     // Logo
                     column.Item().AlignCenter().Height(120).Image("./Media/sec-logo.png");
 
@@ -2873,8 +2880,8 @@ namespace BluebirdCore.Services
                         //contact.Item().Text("Chudleigh House School").FontSize(14).Bold().AlignCenter();
                         contact.Item().Text("Plot 11289, Lusaka, Zambia").FontSize(8).AlignCenter();
                         contact.Item().Text("Tel: +260-955-876333  | +260-953-074465").FontSize(12).AlignCenter().FontSize(8);
-                        contact.Item().Text("Email: info@chudleighhouseschool.com").AlignCenter().FontSize(8);
-                        contact.Item().Text("Website: www.chudleighhouseschool.com").FontSize(8).AlignCenter();
+                        contact.Item().Text($"Email: {schoolSettings.Email}").AlignCenter().FontSize(8);
+                        contact.Item().Text($"Website: {schoolSettings.Website}").FontSize(8).AlignCenter();
                     });
 
 
@@ -2886,7 +2893,7 @@ namespace BluebirdCore.Services
 
 
 
-        private static void AddCoverPageELC(IDocumentContainer container, Student student, AcademicYear academicYear, int term, string section)
+        private static void AddCoverPageELC(IDocumentContainer container, Student student, AcademicYear academicYear, int term, string section, SchoolSettings schoolSettings)
         {
 
             container.Page(page =>
@@ -2906,9 +2913,9 @@ namespace BluebirdCore.Services
 
                     // School Name
                     column.Item().PaddingTop(30).AlignCenter()
-                        .Text("CHUDLEIGH HOUSE SCHOOL").FontSize(32).Bold().FontColor(Colors.Blue.Darken2);
+                        .Text(schoolSettings.Name.ToUpper()).FontSize(32).Bold().FontColor(Colors.Blue.Darken2);
                     // Logo
-                    column.Item().AlignCenter().Height(120).Image("./Media/chs-logo.png");
+                    column.Item().AlignCenter().Height(120).Image(schoolSettings.LogoPath);
 
                     // School Motto
                     column.Item().PaddingTop(15).AlignCenter()
@@ -2950,8 +2957,8 @@ namespace BluebirdCore.Services
                         //contact.Item().Text("Chudleigh House School").FontSize(14).Bold().AlignCenter();
                         contact.Item().Text("Plot 11289, Lusaka, Zambia").FontSize(8).AlignCenter();
                         contact.Item().Text("Tel: +260-955-876333  | +260-953-074465").FontSize(12).AlignCenter().FontSize(8);
-                        contact.Item().Text("Email: info@chudleighhouseschool.com").AlignCenter().FontSize(8);
-                        contact.Item().Text("Website: www.chudleighhouseschool.com").FontSize(8).AlignCenter();
+                        contact.Item().Text($"Email: {schoolSettings.Email}").AlignCenter().FontSize(8);
+                        contact.Item().Text($"Website: {schoolSettings.Website}").FontSize(8).AlignCenter();
                     });
 
 
