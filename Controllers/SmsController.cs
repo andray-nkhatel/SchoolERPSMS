@@ -4,6 +4,8 @@ using BluebirdCore.Services;
 using BluebirdCore.Data;
 using BluebirdCore.Entities;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using System.Text.RegularExpressions;
 
 namespace BluebirdCore.Controllers
 {
@@ -24,6 +26,19 @@ namespace BluebirdCore.Controllers
             _smsService = smsService;
             _logger = logger;
             _context = context;
+        }
+
+        /// <summary>
+        /// Helper method to get current user ID from JWT token
+        /// </summary>
+        private int? GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdClaim, out var userId))
+            {
+                return userId;
+            }
+            return null;
         }
 
         /// <summary>
@@ -73,7 +88,57 @@ namespace BluebirdCore.Controllers
 
             try
             {
+                SmsLog? smsLog = null;
+                
+                // Create SMS log entry before sending
+                try
+                {
+                    smsLog = new SmsLog
+                    {
+                        PhoneNumber = request.PhoneNumber,
+                        MessageContent = request.Message,
+                        SentByUserId = GetCurrentUserId(),
+                        Status = "Pending",
+                        MessageType = "Single",
+                        SentAt = DateTime.UtcNow
+                    };
+                    _context.SmsLogs.Add(smsLog);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation($"SMS log created with ID: {smsLog.Id} for phone: {request.PhoneNumber}");
+                }
+                catch (Exception logEx)
+                {
+                    _logger.LogError(logEx, "Failed to create SMS log entry. Continuing with SMS send anyway.");
+                    // Continue with SMS send even if logging fails
+                }
+
+                // Send SMS
                 var result = await _smsService.SendSmsAsync(request.PhoneNumber, request.Message);
+                
+                // Update log entry with result
+                if (smsLog != null)
+                {
+                    try
+                    {
+                        if (result)
+                        {
+                            smsLog.Status = "Sent";
+                            smsLog.ProviderResponse = "Success";
+                        }
+                        else
+                        {
+                            smsLog.Status = "Failed";
+                            smsLog.ErrorMessage = "Failed to send SMS. Please check your SMS API configuration and logs.";
+                        }
+                        await _context.SaveChangesAsync();
+                        _logger.LogInformation($"SMS log updated with status: {smsLog.Status} for log ID: {smsLog.Id}");
+                    }
+                    catch (Exception updateEx)
+                    {
+                        _logger.LogError(updateEx, $"Failed to update SMS log entry ID: {smsLog.Id}. SMS was {(result ? "sent" : "failed")}.");
+                        // Continue even if log update fails
+                    }
+                }
                 
                 if (result)
                 {
@@ -95,6 +160,28 @@ namespace BluebirdCore.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error sending SMS");
+                
+                // Try to update log entry if it exists
+                try
+                {
+                    var latestLog = await _context.SmsLogs
+                        .Where(s => s.PhoneNumber == request.PhoneNumber && s.Status == "Pending")
+                        .OrderByDescending(s => s.SentAt)
+                        .FirstOrDefaultAsync();
+                    
+                    if (latestLog != null)
+                    {
+                        latestLog.Status = "Failed";
+                        latestLog.ErrorMessage = ex.Message;
+                        latestLog.ProviderResponse = $"Exception: {ex.GetType().Name}";
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                catch (Exception logEx)
+                {
+                    _logger.LogError(logEx, "Error updating SMS log after exception");
+                }
+                
                 return StatusCode(500, new ErrorResponseDto 
                 { 
                     Message = "An error occurred while sending SMS", 
@@ -152,7 +239,60 @@ namespace BluebirdCore.Controllers
 
             try
             {
+                List<SmsLog> smsLogs = new();
+                
+                // Create log entries for all phone numbers before sending
+                try
+                {
+                    smsLogs = request.PhoneNumbers.Select(phoneNumber => new SmsLog
+                    {
+                        PhoneNumber = phoneNumber,
+                        MessageContent = request.Message,
+                        SentByUserId = GetCurrentUserId(),
+                        Status = "Pending",
+                        MessageType = "Bulk",
+                        SentAt = DateTime.UtcNow
+                    }).ToList();
+                    
+                    _context.SmsLogs.AddRange(smsLogs);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation($"Bulk SMS logs created: {smsLogs.Count} entries");
+                }
+                catch (Exception logEx)
+                {
+                    _logger.LogError(logEx, "Failed to create bulk SMS log entries. Continuing with SMS send anyway.");
+                    // Continue with SMS send even if logging fails
+                }
+
+                // Send bulk SMS
                 var result = await _smsService.SendBulkSmsAsync(request.PhoneNumbers, request.Message);
+                
+                // Update log entries with result
+                if (smsLogs.Any())
+                {
+                    try
+                    {
+                        // Note: Since SendBulkSmsAsync sends to all numbers but only returns a single bool,
+                        // we'll mark all as sent if result is true, or all as failed if false.
+                        // For more granular tracking, we'd need to modify the service to return per-number results.
+                        foreach (var log in smsLogs)
+                        {
+                            log.Status = result ? "Sent" : "Failed";
+                            log.ProviderResponse = result ? "Success" : "Bulk send operation failed";
+                            if (!result)
+                            {
+                                log.ErrorMessage = "Some SMS messages failed to send. Please check logs for details.";
+                            }
+                        }
+                        await _context.SaveChangesAsync();
+                        _logger.LogInformation($"Bulk SMS logs updated with status: {(result ? "Sent" : "Failed")} for {smsLogs.Count} entries");
+                    }
+                    catch (Exception updateEx)
+                    {
+                        _logger.LogError(updateEx, $"Failed to update bulk SMS log entries. SMS was {(result ? "sent" : "failed")}.");
+                        // Continue even if log update fails
+                    }
+                }
                 
                 if (result)
                 {
@@ -174,6 +314,31 @@ namespace BluebirdCore.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error sending bulk SMS");
+                
+                // Try to update log entries if they exist
+                try
+                {
+                    var latestLogs = await _context.SmsLogs
+                        .Where(s => request.PhoneNumbers.Contains(s.PhoneNumber) && 
+                                   s.Status == "Pending" && 
+                                   s.MessageType == "Bulk")
+                        .OrderByDescending(s => s.SentAt)
+                        .Take(request.PhoneNumbers.Count)
+                        .ToListAsync();
+                    
+                    foreach (var log in latestLogs)
+                    {
+                        log.Status = "Failed";
+                        log.ErrorMessage = ex.Message;
+                        log.ProviderResponse = $"Exception: {ex.GetType().Name}";
+                    }
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception logEx)
+                {
+                    _logger.LogError(logEx, "Error updating SMS logs after exception");
+                }
+                
                 return StatusCode(500, new ErrorResponseDto 
                 { 
                     Message = "An error occurred while sending bulk SMS", 
@@ -418,8 +583,59 @@ namespace BluebirdCore.Controllers
                     marks
                 );
 
+                // Create SMS log entry before sending
+                SmsLog? smsLog = null;
+                try
+                {
+                    smsLog = new SmsLog
+                    {
+                        PhoneNumber = phoneNumber,
+                        MessageContent = message,
+                        StudentId = request.StudentId,
+                        SentByUserId = GetCurrentUserId(),
+                        Status = "Pending",
+                        MessageType = "StudentMarks",
+                        Term = request.Term,
+                        AcademicYear = academicYearId,
+                        SentAt = DateTime.UtcNow
+                    };
+                    _context.SmsLogs.Add(smsLog);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation($"Student marks SMS log created with ID: {smsLog.Id} for student ID: {request.StudentId}, phone: {phoneNumber}");
+                }
+                catch (Exception logEx)
+                {
+                    _logger.LogError(logEx, "Failed to create student marks SMS log entry. Continuing with SMS send anyway.");
+                    // Continue with SMS send even if logging fails
+                }
+
                 // Send SMS
                 var result = await _smsService.SendSmsAsync(phoneNumber, message);
+
+                // Update log entry with result
+                if (smsLog != null)
+                {
+                    try
+                    {
+                        if (result)
+                        {
+                            smsLog.Status = "Sent";
+                            smsLog.ProviderResponse = "Success";
+                        }
+                        else
+                        {
+                            smsLog.Status = "Failed";
+                            smsLog.ErrorMessage = "Failed to send SMS. Please check your SMS API configuration and logs.";
+                        }
+                        await _context.SaveChangesAsync();
+                        _logger.LogInformation($"Student marks SMS log updated with status: {smsLog.Status} for log ID: {smsLog.Id}");
+                    }
+                    catch (Exception updateEx)
+                    {
+                        _logger.LogError(updateEx, $"Failed to update student marks SMS log entry ID: {smsLog.Id}. SMS was {(result ? "sent" : "failed")}.");
+                        // Continue even if log update fails
+                    }
+                }
 
                 if (result)
                 {
@@ -452,6 +668,30 @@ namespace BluebirdCore.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error sending student marks SMS");
+                
+                // Try to update log entry if it exists
+                try
+                {
+                    var latestLog = await _context.SmsLogs
+                        .Where(s => s.StudentId == request.StudentId && 
+                                   s.Status == "Pending" && 
+                                   s.MessageType == "StudentMarks")
+                        .OrderByDescending(s => s.SentAt)
+                        .FirstOrDefaultAsync();
+                    
+                    if (latestLog != null)
+                    {
+                        latestLog.Status = "Failed";
+                        latestLog.ErrorMessage = ex.Message;
+                        latestLog.ProviderResponse = $"Exception: {ex.GetType().Name}";
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                catch (Exception logEx)
+                {
+                    _logger.LogError(logEx, "Error updating SMS log after exception");
+                }
+                
                 return StatusCode(500, new ErrorResponseDto 
                 { 
                     Message = "An error occurred while sending student marks SMS", 
@@ -645,6 +885,223 @@ namespace BluebirdCore.Controllers
         }
 
         /// <summary>
+        /// Diagnostic endpoint to check if SmsLogs table exists and is accessible
+        /// </summary>
+        [HttpGet("logs/test")]
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<ActionResult> TestSmsLogsTable()
+        {
+            try
+            {
+                // Try to query the table
+                var count = await _context.SmsLogs.CountAsync();
+                var testLog = new SmsLog
+                {
+                    PhoneNumber = "260000000000",
+                    MessageContent = "Test log entry",
+                    Status = "Pending",
+                    MessageType = "Test",
+                    SentAt = DateTime.UtcNow
+                };
+                
+                _context.SmsLogs.Add(testLog);
+                await _context.SaveChangesAsync();
+                
+                // Delete the test log
+                _context.SmsLogs.Remove(testLog);
+                await _context.SaveChangesAsync();
+                
+                return Ok(new 
+                { 
+                    Success = true, 
+                    Message = "SmsLogs table is accessible",
+                    CurrentLogCount = count,
+                    TestLogCreatedAndDeleted = true
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error testing SmsLogs table");
+                return StatusCode(500, new ErrorResponseDto 
+                { 
+                    Message = "SmsLogs table test failed", 
+                    Error = ex.Message,
+                    StackTrace = ex.StackTrace
+                });
+            }
+        }
+
+        /// <summary>
+        /// Get SMS logs with filtering and pagination
+        /// </summary>
+        /// <remarks>
+        /// Retrieves SMS logs with optional filtering by date range, status, message type, student, or user.
+        /// Supports pagination for large datasets.
+        /// 
+        /// **Example Request:**
+        /// ```
+        /// GET /api/sms/logs?page=1&pageSize=20&status=Sent&startDate=2025-01-01&endDate=2025-12-31
+        /// ```
+        /// </remarks>
+        /// <param name="page">Page number (default: 1)</param>
+        /// <param name="pageSize">Number of records per page (default: 20, max: 100)</param>
+        /// <param name="status">Filter by status: Sent, Failed, Pending</param>
+        /// <param name="messageType">Filter by message type: Single, Bulk, StudentMarks</param>
+        /// <param name="studentId">Filter by student ID</param>
+        /// <param name="sentByUserId">Filter by user ID who sent the SMS</param>
+        /// <param name="startDate">Filter by start date (ISO format)</param>
+        /// <param name="endDate">Filter by end date (ISO format)</param>
+        /// <param name="phoneNumber">Filter by phone number (partial match)</param>
+        /// <returns>Paginated list of SMS logs with summary statistics</returns>
+        /// <response code="200">SMS logs retrieved successfully</response>
+        /// <response code="401">Unauthorized</response>
+        /// <response code="403">Forbidden (requires Admin or Staff role)</response>
+        [HttpGet("logs")]
+        [Authorize(Roles = "Admin,Staff")]
+        [ProducesResponseType(typeof(SmsLogsResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<SmsLogsResponseDto>> GetSmsLogs(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? status = null,
+            [FromQuery] string? messageType = null,
+            [FromQuery] int? studentId = null,
+            [FromQuery] int? sentByUserId = null,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] string? phoneNumber = null)
+        {
+            try
+            {
+                // Validate pagination
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 20;
+                if (pageSize > 100) pageSize = 100;
+
+                // Build query
+                var query = _context.SmsLogs
+                    .Include(s => s.Student)
+                    .Include(s => s.SentByUser)
+                    .Include(s => s.AcademicYearNavigation)
+                    .AsQueryable();
+
+                // Apply filters
+                if (!string.IsNullOrWhiteSpace(status))
+                {
+                    query = query.Where(s => s.Status == status);
+                }
+
+                if (!string.IsNullOrWhiteSpace(messageType))
+                {
+                    query = query.Where(s => s.MessageType == messageType);
+                }
+
+                if (studentId.HasValue)
+                {
+                    query = query.Where(s => s.StudentId == studentId.Value);
+                }
+
+                if (sentByUserId.HasValue)
+                {
+                    query = query.Where(s => s.SentByUserId == sentByUserId.Value);
+                }
+
+                if (startDate.HasValue)
+                {
+                    query = query.Where(s => s.SentAt >= startDate.Value);
+                }
+
+                if (endDate.HasValue)
+                {
+                    query = query.Where(s => s.SentAt <= endDate.Value.AddDays(1)); // Include entire end date
+                }
+
+                if (!string.IsNullOrWhiteSpace(phoneNumber))
+                {
+                    query = query.Where(s => s.PhoneNumber.Contains(phoneNumber));
+                }
+
+                // Get total count before pagination
+                var totalCount = await query.CountAsync();
+
+                // Apply pagination and ordering
+                var logs = await query
+                    .OrderByDescending(s => s.SentAt)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(s => new SmsLogDto
+                    {
+                        Id = s.Id,
+                        PhoneNumber = s.PhoneNumber,
+                        MessageContent = s.MessageContent,
+                        StudentId = s.StudentId,
+                        StudentName = s.Student != null ? s.Student.FullName : null,
+                        SentByUserId = s.SentByUserId,
+                        SentByUserName = s.SentByUser != null ? s.SentByUser.FullName : null,
+                        SentAt = s.SentAt,
+                        Status = s.Status,
+                        ProviderResponse = s.ProviderResponse,
+                        Cost = s.Cost,
+                        MessageType = s.MessageType,
+                        Term = s.Term,
+                        AcademicYear = s.AcademicYear,
+                        AcademicYearName = s.AcademicYearNavigation != null ? s.AcademicYearNavigation.Name : null,
+                        RetryCount = s.RetryCount,
+                        ErrorMessage = s.ErrorMessage
+                    })
+                    .ToListAsync();
+
+                // Get summary statistics
+                var allLogsQuery = _context.SmsLogs.AsQueryable();
+                
+                // Apply same filters for statistics
+                if (!string.IsNullOrWhiteSpace(status))
+                    allLogsQuery = allLogsQuery.Where(s => s.Status == status);
+                if (!string.IsNullOrWhiteSpace(messageType))
+                    allLogsQuery = allLogsQuery.Where(s => s.MessageType == messageType);
+                if (studentId.HasValue)
+                    allLogsQuery = allLogsQuery.Where(s => s.StudentId == studentId.Value);
+                if (sentByUserId.HasValue)
+                    allLogsQuery = allLogsQuery.Where(s => s.SentByUserId == sentByUserId.Value);
+                if (startDate.HasValue)
+                    allLogsQuery = allLogsQuery.Where(s => s.SentAt >= startDate.Value);
+                if (endDate.HasValue)
+                    allLogsQuery = allLogsQuery.Where(s => s.SentAt <= endDate.Value.AddDays(1));
+                if (!string.IsNullOrWhiteSpace(phoneNumber))
+                    allLogsQuery = allLogsQuery.Where(s => s.PhoneNumber.Contains(phoneNumber));
+
+                var stats = new SmsLogsStatisticsDto
+                {
+                    TotalCount = await allLogsQuery.CountAsync(),
+                    SentCount = await allLogsQuery.Where(s => s.Status == "Sent").CountAsync(),
+                    FailedCount = await allLogsQuery.Where(s => s.Status == "Failed").CountAsync(),
+                    PendingCount = await allLogsQuery.Where(s => s.Status == "Pending").CountAsync(),
+                    TotalCost = await allLogsQuery.Where(s => s.Cost.HasValue).SumAsync(s => s.Cost!.Value)
+                };
+
+                return Ok(new SmsLogsResponseDto
+                {
+                    Logs = logs,
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+                    Statistics = stats
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving SMS logs");
+                return StatusCode(500, new ErrorResponseDto 
+                { 
+                    Message = "An error occurred while retrieving SMS logs", 
+                    Error = ex.Message 
+                });
+            }
+        }
+
+        /// <summary>
         /// Formats student marks into an SMS message with key information from ReportCardPdfService
         /// </summary>
         /// <param name="studentName">Student's full name (highly required)</param>
@@ -774,6 +1231,26 @@ namespace BluebirdCore.Controllers
                 };
             }
 
+            // Helper to shorten class name (e.g., "Form 1" -> "F1", "Form 1 W" -> "F1W")
+            string ShortenClassName(string className)
+            {
+                if (string.IsNullOrWhiteSpace(className))
+                    return className;
+
+                var name = className.Trim();
+                // Match patterns like "Form 1", "Form 2", "Form 1 W", "Form 1A", etc.
+                var formMatch = Regex.Match(name, @"Form\s+(\d+)\s*([A-Z]?)", RegexOptions.IgnoreCase);
+                if (formMatch.Success)
+                {
+                    var formNumber = formMatch.Groups[1].Value;
+                    var suffix = formMatch.Groups[2].Value;
+                    return $"F{formNumber}{suffix}";
+                }
+                
+                // If no match, return as is (might be already short or different format)
+                return name;
+            }
+
             // Helper to identify exam type
             bool IsTest1(ExamType examType)
             {
@@ -848,21 +1325,22 @@ namespace BluebirdCore.Controllers
 
             // Build the message
             var scoresText = string.Join(", ", subjectScores);
-            var message = $"{studentName}, {className} - Term {term} ({academicYear}): {scoresText}. Full report at school.";
+            var shortClassName = ShortenClassName(className);
+            var message = $"{studentName}, {shortClassName} - Term {term} {academicYear}: {scoresText}";
 
             // Ensure message fits within SMS limit (160 chars)
             // If too long, we'll need to truncate or use a more compact format
             if (message.Length > 160)
             {
-                // Try to make it more compact by shortening the ending
-                var compactEnding = ". Full report at school.";
-                var maxSubjectLength = 160 - (studentName.Length + className.Length + 20 + compactEnding.Length);
+                // Calculate base message length (student name, class, term, year, separators)
+                var baseLength = studentName.Length + shortClassName.Length + 25; // 25 for " - Term {term} {year}: "
+                var maxSubjectLength = 160 - baseLength;
                 
                 if (maxSubjectLength > 50)
                 {
                     // Truncate subject list if needed
                     var truncatedScores = new List<string>();
-                    var currentLength = studentName.Length + className.Length + 20 + compactEnding.Length;
+                    var currentLength = baseLength;
                     
                     foreach (var score in subjectScores)
                     {
@@ -876,7 +1354,7 @@ namespace BluebirdCore.Controllers
                     
                     if (truncatedScores.Any())
                     {
-                        message = $"{studentName}, {className} - Term {term} ({academicYear}): {string.Join(", ", truncatedScores)}. Full report at school.";
+                        message = $"{studentName}, {shortClassName} - Term {term} {academicYear}: {string.Join(", ", truncatedScores)}";
                     }
                 }
             }
@@ -1105,6 +1583,55 @@ namespace BluebirdCore.Controllers
         /// Number of marks included
         /// </summary>
         public int MarksCount { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for SMS log entry
+    /// </summary>
+    public class SmsLogDto
+    {
+        public int Id { get; set; }
+        public string PhoneNumber { get; set; } = string.Empty;
+        public string MessageContent { get; set; } = string.Empty;
+        public int? StudentId { get; set; }
+        public string? StudentName { get; set; }
+        public int? SentByUserId { get; set; }
+        public string? SentByUserName { get; set; }
+        public DateTime SentAt { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string? ProviderResponse { get; set; }
+        public decimal? Cost { get; set; }
+        public string? MessageType { get; set; }
+        public int? Term { get; set; }
+        public int? AcademicYear { get; set; }
+        public string? AcademicYearName { get; set; }
+        public int RetryCount { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    /// <summary>
+    /// DTO for SMS logs statistics
+    /// </summary>
+    public class SmsLogsStatisticsDto
+    {
+        public int TotalCount { get; set; }
+        public int SentCount { get; set; }
+        public int FailedCount { get; set; }
+        public int PendingCount { get; set; }
+        public decimal TotalCost { get; set; }
+    }
+
+    /// <summary>
+    /// Response DTO for SMS logs query
+    /// </summary>
+    public class SmsLogsResponseDto
+    {
+        public List<SmsLogDto> Logs { get; set; } = new();
+        public int TotalCount { get; set; }
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public int TotalPages { get; set; }
+        public SmsLogsStatisticsDto Statistics { get; set; } = new();
     }
 }
 

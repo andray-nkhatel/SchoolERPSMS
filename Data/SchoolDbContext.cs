@@ -26,6 +26,7 @@ namespace BluebirdCore.Data
         public DbSet<BabyClassSkillAssessment> BabyClassSkillAssessments { get; set; }
         public DbSet<StudentTechnologyTrack> StudentTechnologyTracks { get; set; }
         public DbSet<StudentSubject> StudentSubjects { get; set; }
+        public DbSet<SmsLog> SmsLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -192,6 +193,30 @@ namespace BluebirdCore.Data
             modelBuilder.Entity<BabyClassSkill>(entity =>
             {
                 entity.HasIndex(e => e.Name).IsUnique();
+            });
+
+            // SmsLog configurations
+            modelBuilder.Entity<SmsLog>(entity =>
+            {
+                entity.HasOne(e => e.Student)
+                      .WithMany()
+                      .HasForeignKey(e => e.StudentId)
+                      .OnDelete(DeleteBehavior.SetNull);
+                
+                entity.HasOne(e => e.SentByUser)
+                      .WithMany()
+                      .HasForeignKey(e => e.SentByUserId)
+                      .OnDelete(DeleteBehavior.SetNull);
+                
+                entity.HasOne(e => e.AcademicYearNavigation)
+                      .WithMany()
+                      .HasForeignKey(e => e.AcademicYear)
+                      .OnDelete(DeleteBehavior.SetNull);
+                
+                entity.HasIndex(e => e.PhoneNumber);
+                entity.HasIndex(e => e.StudentId);
+                entity.HasIndex(e => e.SentAt);
+                entity.HasIndex(e => e.Status);
             });
 
             // BabyClassSkillItem configurations

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using CsvHelper;
 using CsvHelper.Configuration;
 using System.Globalization;
+using System.Linq;
 
 namespace BluebirdCore.Services
 {
@@ -214,6 +215,7 @@ namespace BluebirdCore.Services
                     HeaderValidated = null,
                     MissingFieldFound = null,
                     TrimOptions = CsvHelper.Configuration.TrimOptions.Trim,
+                    PrepareHeaderForMatch = args => args.Header.ToLower(),
                     BadDataFound = context =>
                     {
                         errors.Add($"Row {context.RawRecord}: Invalid data in field '{context.Field}'");
@@ -493,7 +495,24 @@ namespace BluebirdCore.Services
         {
             try
             {
-                return csv.GetField(fieldName);
+                // Try exact match first
+                var value = csv.GetField(fieldName);
+                if (!string.IsNullOrEmpty(value))
+                    return value;
+                
+                // Try case-insensitive match
+                var headerRecord = csv.HeaderRecord;
+                if (headerRecord != null)
+                {
+                    var matchingHeader = headerRecord.FirstOrDefault(h => 
+                        string.Equals(h, fieldName, StringComparison.OrdinalIgnoreCase));
+                    if (matchingHeader != null)
+                    {
+                        return csv.GetField(matchingHeader);
+                    }
+                }
+                
+                return null;
             }
             catch
             {

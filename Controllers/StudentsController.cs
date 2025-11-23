@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using BluebirdCore.Data;
 using BluebirdCore.Entities;
@@ -792,6 +793,134 @@ namespace BluebirdCore.Controllers
                     Success = false,
                     Message = $"Error updating student: {ex.Message}"
                 });
+            }
+        }
+
+        /// <summary>
+        /// Import students from CSV file
+        /// </summary>
+        [HttpPost("import/csv")]
+        [Authorize(Roles = "Admin,Teacher")]
+        public async Task<ActionResult<ApiResponse<ImportResult<StudentDto>>>> ImportFromCsv(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest(new ApiResponse<ImportResult<StudentDto>>
+                    {
+                        Success = false,
+                        Message = "No file uploaded"
+                    });
+                }
+
+                if (!file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new ApiResponse<ImportResult<StudentDto>>
+                    {
+                        Success = false,
+                        Message = "File must be a CSV file"
+                    });
+                }
+
+                var importResult = await _studentService.ImportStudentsFromCsvAsync(file.OpenReadStream());
+
+                // Convert imported students to DTOs
+                var studentDtos = importResult.Imported.Select(s => new StudentDto
+                {
+                    Id = s.Id,
+                    FirstName = s.FirstName,
+                    LastName = s.LastName,
+                    MiddleName = s.MiddleName,
+                    StudentNumber = s.StudentNumber,
+                    DateOfBirth = s.DateOfBirth ?? DateTime.MinValue,
+                    Gender = s.Gender,
+                    Address = s.Address,
+                    PhoneNumber = s.PhoneNumber,
+                    GuardianName = s.GuardianName,
+                    GuardianPhone = s.GuardianPhone,
+                    GradeId = s.GradeId,
+                    GradeName = s.Grade != null ? s.Grade.FullName : null,
+                    IsActive = s.IsActive,
+                    IsArchived = s.IsArchived,
+                    EnrollmentDate = s.EnrollmentDate,
+                    FullName = s.FullName
+                }).ToList();
+
+                var result = new ImportResult<StudentDto>
+                {
+                    Successful = importResult.Successful,
+                    Failed = importResult.Failed,
+                    Total = importResult.Total,
+                    Errors = importResult.Errors,
+                    Imported = studentDtos
+                };
+
+                return Ok(new ApiResponse<ImportResult<StudentDto>>
+                {
+                    Success = true,
+                    Data = result,
+                    Message = $"Import completed: {importResult.Successful} successful, {importResult.Failed} failed"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<ImportResult<StudentDto>>
+                {
+                    Success = false,
+                    Message = $"Error importing students: {ex.Message}"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Download CSV template for student import
+        /// </summary>
+        [HttpGet("template")]
+        [Authorize(Roles = "Admin,Teacher")]
+        public IActionResult DownloadTemplate()
+        {
+            try
+            {
+                // Include instructions as comments in the CSV
+                var instructions = "# Student Import Template - Instructions\n" +
+                                  "# ===========================================\n" +
+                                  "# REQUIRED COLUMNS (Minimum):\n" +
+                                  "#   - FirstName (or firstName): Student's first name\n" +
+                                  "#   - LastName (or lastName): Student's last name\n" +
+                                  "#   - GradeId (or gradeId): Numeric grade ID\n" +
+                                  "#\n" +
+                                  "# OPTIONAL COLUMNS:\n" +
+                                  "#   - MiddleName: Student's middle name\n" +
+                                  "#   - StudentNumber: Unique student number (auto-generated if not provided)\n" +
+                                  "#   - DateOfBirth: Birth date in YYYY-MM-DD format\n" +
+                                  "#   - Gender: Male, Female, or Other\n" +
+                                  "#   - Address: Student's address (use quotes if contains commas)\n" +
+                                  "#   - PhoneNumber: Student's phone number\n" +
+                                  "#   - GuardianName: Parent/guardian name\n" +
+                                  "#   - GuardianPhone: Guardian's phone number\n" +
+                                  "#\n" +
+                                  "# NOTES:\n" +
+                                  "#   - Headers are case-insensitive (FirstName = firstName)\n" +
+                                  "#   - Date format: YYYY-MM-DD (e.g., 2010-05-15)\n" +
+                                  "#   - Use quotes for fields containing commas: \"123 Main St, City\"\n" +
+                                  "#   - Empty fields are allowed for optional columns\n" +
+                                  "#   - Remove this instruction block before importing\n" +
+                                  "# ===========================================\n\n";
+
+                // Use PascalCase to match backend expectations (FirstName, LastName, GradeId)
+                var csvContent = instructions +
+                                "FirstName,LastName,MiddleName,StudentNumber,DateOfBirth,Gender,Address,PhoneNumber,GuardianName,GuardianPhone,GradeId\n" +
+                                "John,Doe,Michael,STU001,2010-05-15,Male,\"123 Main St, City\",555-0123,Jane Doe,555-0124,5\n" +
+                                "Sarah,Smith,,STU002,2011-08-22,Female,\"456 Oak Ave, Town\",555-0125,Robert Smith,555-0126,4\n" +
+                                "Michael,Johnson,Lee,STU003,2009-12-03,Male,\"789 Pine Rd, Village\",,Mary Johnson,555-0127,6";
+
+                var bytes = System.Text.Encoding.UTF8.GetBytes(csvContent);
+                return File(bytes, "text/csv", "student_import_template.csv");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Error generating template: {ex.Message}" });
             }
         }
     }
