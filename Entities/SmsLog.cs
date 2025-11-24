@@ -35,7 +35,7 @@ namespace SchoolErpSMS.Entities
         public int? SentByUserId { get; set; }
 
         /// <summary>
-        /// Timestamp when SMS was sent
+        /// Timestamp when SMS was sent (stored in UTC)
         /// </summary>
         public DateTime SentAt { get; set; } = DateTime.UtcNow;
 

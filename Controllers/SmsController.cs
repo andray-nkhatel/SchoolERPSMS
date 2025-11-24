@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SchoolErpSMS.Services;
 using SchoolErpSMS.Data;
 using SchoolErpSMS.Entities;
+using SchoolErpSMS.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
@@ -100,7 +101,7 @@ namespace SchoolErpSMS.Controllers
                         SentByUserId = GetCurrentUserId(),
                         Status = "Pending",
                         MessageType = "Single",
-                        SentAt = DateTime.UtcNow
+                        SentAt = DateTimeHelper.GetUtcNow() // Store UTC for database consistency
                     };
                     _context.SmsLogs.Add(smsLog);
                     await _context.SaveChangesAsync();
@@ -251,7 +252,7 @@ namespace SchoolErpSMS.Controllers
                         SentByUserId = GetCurrentUserId(),
                         Status = "Pending",
                         MessageType = "Bulk",
-                        SentAt = DateTime.UtcNow
+                        SentAt = DateTimeHelper.GetUtcNow() // Store UTC for database consistency
                     }).ToList();
                     
                     _context.SmsLogs.AddRange(smsLogs);
@@ -597,7 +598,7 @@ namespace SchoolErpSMS.Controllers
                         MessageType = "StudentMarks",
                         Term = request.Term,
                         AcademicYear = academicYearId,
-                        SentAt = DateTime.UtcNow
+                        SentAt = DateTimeHelper.GetUtcNow() // Store UTC for database consistency
                     };
                     _context.SmsLogs.Add(smsLog);
                     await _context.SaveChangesAsync();
