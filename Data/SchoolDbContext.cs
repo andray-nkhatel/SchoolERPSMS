@@ -1,7 +1,7 @@
-using BluebirdCore.Entities;
+using SchoolErpSMS.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace BluebirdCore.Data
+namespace SchoolErpSMS.Data
 {
     public class SchoolDbContext : DbContext
     {
@@ -237,8 +237,7 @@ namespace BluebirdCore.Data
             modelBuilder.Entity<ExamType>().HasData(
                 new ExamType { Id = 1, Name = "Test-One", Description = "First test of the term", Order = 1 },
                 new ExamType { Id = 2, Name = "Test-Two", Description = "Second-test examination", Order = 2 },
-                new ExamType { Id = 3, Name = "Test-Three", Description = "Third-test examination ( Usually taken by Grade 7)", Order = 3 },
-                new ExamType { Id = 4, Name = "End-of-Term", Description = "End of term examination", Order = 4 }
+                new ExamType { Id = 3, Name = "End-of-Term", Description = "End of term examination", Order = 3}
             );
 
             // Seed academic year
@@ -264,15 +263,17 @@ namespace BluebirdCore.Data
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // Seed admin user (password: admin123)
+            // Seed admin user (password: root@scherp25)
+            // Using static hash to avoid migration warnings about dynamic values
+            // Hash for "root@scherp25": $2a$11$I0Q7cC9y7.NTwp3hWV3QnOfYsVkRZi1ZsRa1IVGck5VIriBdoip.O
             modelBuilder.Entity<User>().HasData(
                 new User
                 {
                     Id = 1,
                     Username = "admin",
-                    PasswordHash = "$2a$12$Y5Cr10SW4OuJq6qxj7PXtOhZvb7loVQqIRRwcrH8hsdsoeRCririq",
-                    FullName = "System Administrator",
-                    Email = "admin@chsschool.com",
+                    PasswordHash = "$2a$11$I0Q7cC9y7.NTwp3hWV3QnOfYsVkRZi1ZsRa1IVGck5VIriBdoip.O",
+                    FullName = "System Admin",
+                    Email = "admin@scherp.sch.edu",
                     Role = UserRole.Admin,
                     IsActive = true,
                     CreatedAt =  new DateTime(2025, 06, 25)
@@ -318,7 +319,6 @@ namespace BluebirdCore.Data
                 new Subject { Id = 26, Name = "Home Economics", Code = "HE" },
                 new Subject { Id = 34, Name = "Computer Science", Code = "COMSCI" },
                 new Subject { Id = 37, Name = "Commerce", Code = "COMMER" },
-                new Subject { Id = 38, Name = "French", Code = "FRENCH" },
                 new Subject { Id = 39, Name = "Art & Design", Code = "ART" },
                 new Subject {Id = 40, Name = "Food and Nutrition", Code = "F&N"},
                 
@@ -356,328 +356,30 @@ namespace BluebirdCore.Data
             modelBuilder.Entity<Grade>().HasData(
                 // SECONDARY SECTION 
                 // Form 1: W, X, Y (3 streams)
-                new Grade { Id = 31, Name = "Form 1", Stream = "W", Level = 11, Section = SchoolSection.SecondaryJunior},
-                new Grade { Id = 32, Name = "Form 1", Stream = "X", Level = 11, Section = SchoolSection.SecondaryJunior},
-                new Grade { Id = 41, Name = "Form 1", Stream = "Y", Level = 11, Section = SchoolSection.SecondaryJunior},
+                new Grade { Id = 1, Name = "Form 1", Stream = "W", Level = 11, Section = SchoolSection.SecondaryJunior},
+                new Grade { Id = 2, Name = "Form 1", Stream = "X", Level = 11, Section = SchoolSection.SecondaryJunior},
+                new Grade { Id = 3, Name = "Form 1", Stream = "Y", Level = 11, Section = SchoolSection.SecondaryJunior},
                 // Grade 10: V, W, X, Y (4 streams)
-                new Grade { Id = 35, Name = "Grade 10", Stream = "V", Level = 12, Section = SchoolSection.SecondarySenior},
-                new Grade { Id = 36, Name = "Grade 10", Stream = "W", Level = 12, Section = SchoolSection.SecondarySenior},
-                new Grade { Id = 42, Name = "Grade 10", Stream = "X", Level = 12, Section = SchoolSection.SecondarySenior},
-                new Grade { Id = 43, Name = "Grade 10", Stream = "Y", Level = 12, Section = SchoolSection.SecondarySenior},
+                new Grade { Id = 4, Name = "Grade 10", Stream = "V", Level = 12, Section = SchoolSection.SecondarySenior},
+                new Grade { Id = 5, Name = "Grade 10", Stream = "W", Level = 12, Section = SchoolSection.SecondarySenior},
+                new Grade { Id = 6, Name = "Grade 10", Stream = "X", Level = 12, Section = SchoolSection.SecondarySenior},
+                new Grade { Id = 7, Name = "Grade 10", Stream = "Y", Level = 12, Section = SchoolSection.SecondarySenior},
                 // Grade 11: V, W, X, Y (4 streams)
-                new Grade { Id = 37, Name = "Grade 11", Stream = "V", Level = 13, Section = SchoolSection.SecondarySenior},
-                new Grade { Id = 38, Name = "Grade 11", Stream = "W", Level = 13, Section = SchoolSection.SecondarySenior},
-                new Grade { Id = 44, Name = "Grade 11", Stream = "X", Level = 13, Section = SchoolSection.SecondarySenior},
-                new Grade { Id = 45, Name = "Grade 11", Stream = "Y", Level = 13, Section = SchoolSection.SecondarySenior},
+                new Grade { Id = 8, Name = "Grade 11", Stream = "V", Level = 13, Section = SchoolSection.SecondarySenior},
+                new Grade { Id = 9, Name = "Grade 11", Stream = "W", Level = 13, Section = SchoolSection.SecondarySenior},
+                new Grade { Id = 10, Name = "Grade 11", Stream = "X", Level = 13, Section = SchoolSection.SecondarySenior},
+                new Grade { Id = 11, Name = "Grade 11", Stream = "Y", Level = 13, Section = SchoolSection.SecondarySenior},
                 // Grade 12: V, W, X, Y (4 streams)
-                new Grade { Id = 39, Name = "Grade 12", Stream = "V", Level = 14, Section = SchoolSection.SecondarySenior},
-                new Grade { Id = 40, Name = "Grade 12", Stream = "W", Level = 14, Section = SchoolSection.SecondarySenior},
-                new Grade { Id = 46, Name = "Grade 12", Stream = "X", Level = 14, Section = SchoolSection.SecondarySenior},
-                new Grade { Id = 47, Name = "Grade 12", Stream = "Y", Level = 14, Section = SchoolSection.SecondarySenior}
+                new Grade { Id = 12, Name = "Grade 12", Stream = "V", Level = 14, Section = SchoolSection.SecondarySenior},
+                new Grade { Id = 13, Name = "Grade 12", Stream = "W", Level = 14, Section = SchoolSection.SecondarySenior},
+                new Grade { Id = 14, Name = "Grade 12", Stream = "X", Level = 14, Section = SchoolSection.SecondarySenior},
+                new Grade { Id = 15, Name = "Grade 12", Stream = "Y", Level = 14, Section = SchoolSection.SecondarySenior}
 
                 
                 
                
                 
           
-            );
-
-            // Seed GradeSubjects for secondary grades only
-            modelBuilder.Entity<GradeSubject>().HasData(
-                // Secondary grades
-                // Core subjects for all secondary grades
-                // Form 1 (Grades 31, 32, 41) - Core subjects (W, X, Y)
-                new GradeSubject { Id = 193, GradeId = 31, SubjectId = 2, IsActive = true }, // English - Form 1 W
-                new GradeSubject { Id = 194, GradeId = 31, SubjectId = 1, IsActive = true }, // Mathematics - Form 1 W
-                new GradeSubject { Id = 195, GradeId = 31, SubjectId = 23, IsActive = true }, // Civic Education - Form 1 W
-                new GradeSubject { Id = 198, GradeId = 31, SubjectId = 25, IsActive = true }, // MDE - Form 1 W
-                new GradeSubject { Id = 199, GradeId = 31, SubjectId = 6, IsActive = true }, // ICT - Form 1 W
-
-                // Form 1 X - Same core subjects
-                new GradeSubject { Id = 213, GradeId = 32, SubjectId = 2, IsActive = true }, // English
-                new GradeSubject { Id = 214, GradeId = 32, SubjectId = 1, IsActive = true }, // Mathematics
-                new GradeSubject { Id = 215, GradeId = 32, SubjectId = 23, IsActive = true }, // Civic Education
-                new GradeSubject { Id = 217, GradeId = 32, SubjectId = 25, IsActive = true }, // MDE
-                new GradeSubject { Id = 218, GradeId = 32, SubjectId = 6, IsActive = true }, // ICT
-
-                // Form 1 Y - Same core subjects
-                new GradeSubject { Id = 219, GradeId = 41, SubjectId = 2, IsActive = true }, // English
-                new GradeSubject { Id = 220, GradeId = 41, SubjectId = 1, IsActive = true }, // Mathematics
-                new GradeSubject { Id = 221, GradeId = 41, SubjectId = 23, IsActive = true }, // Civic Education
-                new GradeSubject { Id = 222, GradeId = 41, SubjectId = 25, IsActive = true }, // MDE
-                new GradeSubject { Id = 223, GradeId = 41, SubjectId = 6, IsActive = true }, // ICT
-
-                // Grade 10 (Grades 35, 36, 42, 43) - V, W, X, Y
-                // Grade 10 V
-                new GradeSubject { Id = 267, GradeId = 35, SubjectId = 2, IsActive = true }, // English
-                new GradeSubject { Id = 268, GradeId = 35, SubjectId = 1, IsActive = true }, // Mathematics
-                new GradeSubject { Id = 269, GradeId = 35, SubjectId = 4, IsActive = true }, // Social Studies
-                new GradeSubject { Id = 270, GradeId = 35, SubjectId = 36, IsActive = true }, // Science
-                new GradeSubject { Id = 271, GradeId = 35, SubjectId = 33, IsActive = true }, // Computer Studies
-                new GradeSubject { Id = 272, GradeId = 35, SubjectId = 25, IsActive = true }, // MDE
-                // Optional subjects for Grade 10 V
-                new GradeSubject { Id = 273, GradeId = 35, SubjectId = 17, IsActive = true, IsOptional = true }, // Accounts
-                new GradeSubject { Id = 274, GradeId = 35, SubjectId = 22, IsActive = true, IsOptional = true }, // Literature in English
-                new GradeSubject { Id = 275, GradeId = 35, SubjectId = 12, IsActive = true, IsOptional = true }, // Agriculture Science
-                new GradeSubject { Id = 276, GradeId = 35, SubjectId = 15, IsActive = true, IsOptional = true }, // Religious Education
-                new GradeSubject { Id = 277, GradeId = 35, SubjectId = 37, IsActive = true, IsOptional = true }, // Commerce
-                new GradeSubject { Id = 278, GradeId = 35, SubjectId = 26, IsActive = true, IsOptional = true }, // Home Economics
-                new GradeSubject { Id = 279, GradeId = 35, SubjectId = 24, IsActive = true, IsOptional = true }, // Music
-                new GradeSubject { Id = 280, GradeId = 35, SubjectId = 16, IsActive = true, IsOptional = true }, // Business Studies
-                new GradeSubject { Id = 281, GradeId = 35, SubjectId = 13, IsActive = true, IsOptional = true }, // History
-                new GradeSubject { Id = 282, GradeId = 35, SubjectId = 14, IsActive = true, IsOptional = true }, // Geography
-                new GradeSubject { Id = 283, GradeId = 35, SubjectId = 5, IsActive = true, IsOptional = true }, // French
-                new GradeSubject { Id = 284, GradeId = 35, SubjectId = 39, IsActive = true, IsOptional = true }, // Art & Design
-
-                // Grade 10 W
-                new GradeSubject { Id = 285, GradeId = 36, SubjectId = 2, IsActive = true }, // English
-                new GradeSubject { Id = 286, GradeId = 36, SubjectId = 1, IsActive = true }, // Mathematics
-                new GradeSubject { Id = 287, GradeId = 36, SubjectId = 4, IsActive = true }, // Social Studies
-                new GradeSubject { Id = 288, GradeId = 36, SubjectId = 36, IsActive = true }, // Science
-                new GradeSubject { Id = 289, GradeId = 36, SubjectId = 33, IsActive = true }, // Computer Studies
-                new GradeSubject { Id = 290, GradeId = 36, SubjectId = 25, IsActive = true }, // MDE
-                // Optional subjects for Grade 10 W
-                new GradeSubject { Id = 291, GradeId = 36, SubjectId = 17, IsActive = true, IsOptional = true }, // Accounts
-                new GradeSubject { Id = 292, GradeId = 36, SubjectId = 22, IsActive = true, IsOptional = true }, // Literature in English
-                new GradeSubject { Id = 293, GradeId = 36, SubjectId = 12, IsActive = true, IsOptional = true }, // Agriculture Science
-                new GradeSubject { Id = 294, GradeId = 36, SubjectId = 15, IsActive = true, IsOptional = true }, // Religious Education
-                new GradeSubject { Id = 295, GradeId = 36, SubjectId = 37, IsActive = true, IsOptional = true }, // Commerce
-                new GradeSubject { Id = 296, GradeId = 36, SubjectId = 26, IsActive = true, IsOptional = true }, // Home Economics
-                new GradeSubject { Id = 297, GradeId = 36, SubjectId = 24, IsActive = true, IsOptional = true }, // Music
-                new GradeSubject { Id = 298, GradeId = 36, SubjectId = 16, IsActive = true, IsOptional = true }, // Business Studies
-                new GradeSubject { Id = 299, GradeId = 36, SubjectId = 13, IsActive = true, IsOptional = true }, // History
-                new GradeSubject { Id = 300, GradeId = 36, SubjectId = 14, IsActive = true, IsOptional = true }, // Geography
-                new GradeSubject { Id = 301, GradeId = 36, SubjectId = 5, IsActive = true, IsOptional = true }, // French
-                new GradeSubject { Id = 302, GradeId = 36, SubjectId = 39, IsActive = true, IsOptional = true }, // Art & Design
-
-                // Grade 10 X
-                new GradeSubject { Id = 500, GradeId = 42, SubjectId = 2, IsActive = true }, // English
-                new GradeSubject { Id = 501, GradeId = 42, SubjectId = 1, IsActive = true }, // Mathematics
-                new GradeSubject { Id = 502, GradeId = 42, SubjectId = 4, IsActive = true }, // Social Studies
-                new GradeSubject { Id = 503, GradeId = 42, SubjectId = 36, IsActive = true }, // Science
-                new GradeSubject { Id = 504, GradeId = 42, SubjectId = 33, IsActive = true }, // Computer Studies
-                new GradeSubject { Id = 505, GradeId = 42, SubjectId = 25, IsActive = true }, // MDE
-                // Optional subjects for Grade 10 X
-                new GradeSubject { Id = 506, GradeId = 42, SubjectId = 17, IsActive = true, IsOptional = true }, // Accounts
-                new GradeSubject { Id = 507, GradeId = 42, SubjectId = 22, IsActive = true, IsOptional = true }, // Literature in English
-                new GradeSubject { Id = 508, GradeId = 42, SubjectId = 12, IsActive = true, IsOptional = true }, // Agriculture Science
-                new GradeSubject { Id = 509, GradeId = 42, SubjectId = 15, IsActive = true, IsOptional = true }, // Religious Education
-                new GradeSubject { Id = 510, GradeId = 42, SubjectId = 37, IsActive = true, IsOptional = true }, // Commerce
-                new GradeSubject { Id = 511, GradeId = 42, SubjectId = 26, IsActive = true, IsOptional = true }, // Home Economics
-                new GradeSubject { Id = 512, GradeId = 42, SubjectId = 24, IsActive = true, IsOptional = true }, // Music
-                new GradeSubject { Id = 513, GradeId = 42, SubjectId = 16, IsActive = true, IsOptional = true }, // Business Studies
-                new GradeSubject { Id = 514, GradeId = 42, SubjectId = 13, IsActive = true, IsOptional = true }, // History
-                new GradeSubject { Id = 515, GradeId = 42, SubjectId = 14, IsActive = true, IsOptional = true }, // Geography
-                new GradeSubject { Id = 516, GradeId = 42, SubjectId = 5, IsActive = true, IsOptional = true }, // French
-                new GradeSubject { Id = 517, GradeId = 42, SubjectId = 39, IsActive = true, IsOptional = true }, // Art & Design
-
-                // Grade 10 Y
-                new GradeSubject { Id = 518, GradeId = 43, SubjectId = 2, IsActive = true }, // English
-                new GradeSubject { Id = 519, GradeId = 43, SubjectId = 1, IsActive = true }, // Mathematics
-                new GradeSubject { Id = 520, GradeId = 43, SubjectId = 4, IsActive = true }, // Social Studies
-                new GradeSubject { Id = 521, GradeId = 43, SubjectId = 36, IsActive = true }, // Science
-                new GradeSubject { Id = 522, GradeId = 43, SubjectId = 33, IsActive = true }, // Computer Studies
-                new GradeSubject { Id = 523, GradeId = 43, SubjectId = 25, IsActive = true }, // MDE
-                // Optional subjects for Grade 10 Y
-                new GradeSubject { Id = 524, GradeId = 43, SubjectId = 17, IsActive = true, IsOptional = true }, // Accounts
-                new GradeSubject { Id = 525, GradeId = 43, SubjectId = 22, IsActive = true, IsOptional = true }, // Literature in English
-                new GradeSubject { Id = 526, GradeId = 43, SubjectId = 12, IsActive = true, IsOptional = true }, // Agriculture Science
-                new GradeSubject { Id = 527, GradeId = 43, SubjectId = 15, IsActive = true, IsOptional = true }, // Religious Education
-                new GradeSubject { Id = 528, GradeId = 43, SubjectId = 37, IsActive = true, IsOptional = true }, // Commerce
-                new GradeSubject { Id = 529, GradeId = 43, SubjectId = 26, IsActive = true, IsOptional = true }, // Home Economics
-                new GradeSubject { Id = 530, GradeId = 43, SubjectId = 24, IsActive = true, IsOptional = true }, // Music
-                new GradeSubject { Id = 531, GradeId = 43, SubjectId = 16, IsActive = true, IsOptional = true }, // Business Studies
-                new GradeSubject { Id = 532, GradeId = 43, SubjectId = 13, IsActive = true, IsOptional = true }, // History
-                new GradeSubject { Id = 533, GradeId = 43, SubjectId = 14, IsActive = true, IsOptional = true }, // Geography
-                new GradeSubject { Id = 534, GradeId = 43, SubjectId = 5, IsActive = true, IsOptional = true }, // French
-                new GradeSubject { Id = 535, GradeId = 43, SubjectId = 39, IsActive = true, IsOptional = true }, // Art & Design
-
-                // Grade 11 (Grades 37, 38, 44, 45) - V, W, X, Y
-                // Grade 11 V
-                new GradeSubject { Id = 303, GradeId = 37, SubjectId = 2, IsActive = true }, // English
-                new GradeSubject { Id = 304, GradeId = 37, SubjectId = 1, IsActive = true }, // Mathematics
-                new GradeSubject { Id = 305, GradeId = 37, SubjectId = 4, IsActive = true }, // Social Studies
-                new GradeSubject { Id = 306, GradeId = 37, SubjectId = 36, IsActive = true }, // Science
-                new GradeSubject { Id = 307, GradeId = 37, SubjectId = 33, IsActive = true }, // Computer Studies
-                new GradeSubject { Id = 308, GradeId = 37, SubjectId = 25, IsActive = true }, // MDE
-                // Optional subjects for Grade 11 V
-                new GradeSubject { Id = 309, GradeId = 37, SubjectId = 17, IsActive = true, IsOptional = true }, // Accounts
-                new GradeSubject { Id = 310, GradeId = 37, SubjectId = 22, IsActive = true, IsOptional = true }, // Literature in English
-                new GradeSubject { Id = 311, GradeId = 37, SubjectId = 12, IsActive = true, IsOptional = true }, // Agriculture Science
-                new GradeSubject { Id = 312, GradeId = 37, SubjectId = 15, IsActive = true, IsOptional = true }, // Religious Education
-                new GradeSubject { Id = 313, GradeId = 37, SubjectId = 37, IsActive = true, IsOptional = true }, // Commerce
-                new GradeSubject { Id = 314, GradeId = 37, SubjectId = 26, IsActive = true, IsOptional = true }, // Home Economics
-                new GradeSubject { Id = 315, GradeId = 37, SubjectId = 24, IsActive = true, IsOptional = true }, // Music
-                new GradeSubject { Id = 316, GradeId = 37, SubjectId = 16, IsActive = true, IsOptional = true }, // Business Studies
-                new GradeSubject { Id = 317, GradeId = 37, SubjectId = 13, IsActive = true, IsOptional = true }, // History
-                new GradeSubject { Id = 318, GradeId = 37, SubjectId = 14, IsActive = true, IsOptional = true }, // Geography
-                new GradeSubject { Id = 319, GradeId = 37, SubjectId = 5, IsActive = true, IsOptional = true }, // French
-                new GradeSubject { Id = 320, GradeId = 37, SubjectId = 39, IsActive = true, IsOptional = true }, // Art & Design
-
-                // Grade 11 W
-                new GradeSubject { Id = 321, GradeId = 38, SubjectId = 2, IsActive = true }, // English
-                new GradeSubject { Id = 322, GradeId = 38, SubjectId = 1, IsActive = true }, // Mathematics
-                new GradeSubject { Id = 323, GradeId = 38, SubjectId = 4, IsActive = true }, // Social Studies
-                new GradeSubject { Id = 324, GradeId = 38, SubjectId = 36, IsActive = true }, // Science
-                new GradeSubject { Id = 325, GradeId = 38, SubjectId = 33, IsActive = true }, // Computer Studies
-                new GradeSubject { Id = 326, GradeId = 38, SubjectId = 25, IsActive = true }, // MDE
-                // Optional subjects for Grade 11 W
-                new GradeSubject { Id = 327, GradeId = 38, SubjectId = 17, IsActive = true, IsOptional = true }, // Accounts
-                new GradeSubject { Id = 328, GradeId = 38, SubjectId = 22, IsActive = true, IsOptional = true }, // Literature in English
-                new GradeSubject { Id = 329, GradeId = 38, SubjectId = 12, IsActive = true, IsOptional = true }, // Agriculture Science
-                new GradeSubject { Id = 330, GradeId = 38, SubjectId = 15, IsActive = true, IsOptional = true }, // Religious Education
-                new GradeSubject { Id = 331, GradeId = 38, SubjectId = 37, IsActive = true, IsOptional = true }, // Commerce
-                new GradeSubject { Id = 332, GradeId = 38, SubjectId = 26, IsActive = true, IsOptional = true }, // Home Economics
-                new GradeSubject { Id = 333, GradeId = 38, SubjectId = 24, IsActive = true, IsOptional = true }, // Music
-                new GradeSubject { Id = 334, GradeId = 38, SubjectId = 16, IsActive = true, IsOptional = true }, // Business Studies
-                new GradeSubject { Id = 335, GradeId = 38, SubjectId = 13, IsActive = true, IsOptional = true }, // History
-                new GradeSubject { Id = 336, GradeId = 38, SubjectId = 14, IsActive = true, IsOptional = true }, // Geography
-                new GradeSubject { Id = 337, GradeId = 38, SubjectId = 5, IsActive = true, IsOptional = true }, // French
-                new GradeSubject { Id = 338, GradeId = 38, SubjectId = 39, IsActive = true, IsOptional = true }, // Art & Design
-
-                // Grade 11 X
-                new GradeSubject { Id = 536, GradeId = 44, SubjectId = 2, IsActive = true }, // English
-                new GradeSubject { Id = 537, GradeId = 44, SubjectId = 1, IsActive = true }, // Mathematics
-                new GradeSubject { Id = 538, GradeId = 44, SubjectId = 4, IsActive = true }, // Social Studies
-                new GradeSubject { Id = 539, GradeId = 44, SubjectId = 36, IsActive = true }, // Science
-                new GradeSubject { Id = 540, GradeId = 44, SubjectId = 33, IsActive = true }, // Computer Studies
-                new GradeSubject { Id = 541, GradeId = 44, SubjectId = 25, IsActive = true }, // MDE
-                // Optional subjects for Grade 11 X
-                new GradeSubject { Id = 542, GradeId = 44, SubjectId = 17, IsActive = true, IsOptional = true }, // Accounts
-                new GradeSubject { Id = 543, GradeId = 44, SubjectId = 22, IsActive = true, IsOptional = true }, // Literature in English
-                new GradeSubject { Id = 544, GradeId = 44, SubjectId = 12, IsActive = true, IsOptional = true }, // Agriculture Science
-                new GradeSubject { Id = 545, GradeId = 44, SubjectId = 15, IsActive = true, IsOptional = true }, // Religious Education
-                new GradeSubject { Id = 546, GradeId = 44, SubjectId = 37, IsActive = true, IsOptional = true }, // Commerce
-                new GradeSubject { Id = 547, GradeId = 44, SubjectId = 26, IsActive = true, IsOptional = true }, // Home Economics
-                new GradeSubject { Id = 548, GradeId = 44, SubjectId = 24, IsActive = true, IsOptional = true }, // Music
-                new GradeSubject { Id = 549, GradeId = 44, SubjectId = 16, IsActive = true, IsOptional = true }, // Business Studies
-                new GradeSubject { Id = 550, GradeId = 44, SubjectId = 13, IsActive = true, IsOptional = true }, // History
-                new GradeSubject { Id = 551, GradeId = 44, SubjectId = 14, IsActive = true, IsOptional = true }, // Geography
-                new GradeSubject { Id = 552, GradeId = 44, SubjectId = 5, IsActive = true, IsOptional = true }, // French
-                new GradeSubject { Id = 553, GradeId = 44, SubjectId = 39, IsActive = true, IsOptional = true }, // Art & Design
-
-                // Grade 11 Y
-                new GradeSubject { Id = 554, GradeId = 45, SubjectId = 2, IsActive = true }, // English
-                new GradeSubject { Id = 555, GradeId = 45, SubjectId = 1, IsActive = true }, // Mathematics
-                new GradeSubject { Id = 556, GradeId = 45, SubjectId = 4, IsActive = true }, // Social Studies
-                new GradeSubject { Id = 557, GradeId = 45, SubjectId = 36, IsActive = true }, // Science
-                new GradeSubject { Id = 558, GradeId = 45, SubjectId = 33, IsActive = true }, // Computer Studies
-                new GradeSubject { Id = 559, GradeId = 45, SubjectId = 25, IsActive = true }, // MDE
-                // Optional subjects for Grade 11 Y
-                new GradeSubject { Id = 560, GradeId = 45, SubjectId = 17, IsActive = true, IsOptional = true }, // Accounts
-                new GradeSubject { Id = 561, GradeId = 45, SubjectId = 22, IsActive = true, IsOptional = true }, // Literature in English
-                new GradeSubject { Id = 562, GradeId = 45, SubjectId = 12, IsActive = true, IsOptional = true }, // Agriculture Science
-                new GradeSubject { Id = 563, GradeId = 45, SubjectId = 15, IsActive = true, IsOptional = true }, // Religious Education
-                new GradeSubject { Id = 564, GradeId = 45, SubjectId = 37, IsActive = true, IsOptional = true }, // Commerce
-                new GradeSubject { Id = 565, GradeId = 45, SubjectId = 26, IsActive = true, IsOptional = true }, // Home Economics
-                new GradeSubject { Id = 566, GradeId = 45, SubjectId = 24, IsActive = true, IsOptional = true }, // Music
-                new GradeSubject { Id = 567, GradeId = 45, SubjectId = 16, IsActive = true, IsOptional = true }, // Business Studies
-                new GradeSubject { Id = 568, GradeId = 45, SubjectId = 13, IsActive = true, IsOptional = true }, // History
-                new GradeSubject { Id = 569, GradeId = 45, SubjectId = 14, IsActive = true, IsOptional = true }, // Geography
-                new GradeSubject { Id = 570, GradeId = 45, SubjectId = 5, IsActive = true, IsOptional = true }, // French
-                new GradeSubject { Id = 571, GradeId = 45, SubjectId = 39, IsActive = true, IsOptional = true }, // Art & Design
-
-                // Grade 12 (Grades 39, 40, 46, 47) - V, W, X, Y
-                // Grade 12 V
-                new GradeSubject { Id = 339, GradeId = 39, SubjectId = 2, IsActive = true }, // English
-                new GradeSubject { Id = 340, GradeId = 39, SubjectId = 1, IsActive = true }, // Mathematics
-                new GradeSubject { Id = 341, GradeId = 39, SubjectId = 4, IsActive = true }, // Social Studies
-                new GradeSubject { Id = 342, GradeId = 39, SubjectId = 36, IsActive = true }, // Science
-                new GradeSubject { Id = 343, GradeId = 39, SubjectId = 33, IsActive = true }, // Computer Studies
-                new GradeSubject { Id = 344, GradeId = 39, SubjectId = 25, IsActive = true }, // MDE
-                // Optional subjects for Grade 12 V
-                new GradeSubject { Id = 345, GradeId = 39, SubjectId = 17, IsActive = true, IsOptional = true }, // Accounts
-                new GradeSubject { Id = 346, GradeId = 39, SubjectId = 22, IsActive = true, IsOptional = true }, // Literature in English
-                new GradeSubject { Id = 347, GradeId = 39, SubjectId = 12, IsActive = true, IsOptional = true }, // Agriculture Science
-                new GradeSubject { Id = 348, GradeId = 39, SubjectId = 15, IsActive = true, IsOptional = true }, // Religious Education
-                new GradeSubject { Id = 349, GradeId = 39, SubjectId = 37, IsActive = true, IsOptional = true }, // Commerce
-                new GradeSubject { Id = 350, GradeId = 39, SubjectId = 26, IsActive = true, IsOptional = true }, // Home Economics
-                new GradeSubject { Id = 351, GradeId = 39, SubjectId = 24, IsActive = true, IsOptional = true }, // Music
-                new GradeSubject { Id = 352, GradeId = 39, SubjectId = 16, IsActive = true, IsOptional = true }, // Business Studies
-                new GradeSubject { Id = 353, GradeId = 39, SubjectId = 13, IsActive = true, IsOptional = true }, // History
-                new GradeSubject { Id = 354, GradeId = 39, SubjectId = 14, IsActive = true, IsOptional = true }, // Geography
-                new GradeSubject { Id = 355, GradeId = 39, SubjectId = 5, IsActive = true, IsOptional = true }, // French
-                new GradeSubject { Id = 356, GradeId = 39, SubjectId = 39, IsActive = true, IsOptional = true }, // Art & Design
-
-                // Grade 12 W
-                new GradeSubject { Id = 357, GradeId = 40, SubjectId = 2, IsActive = true }, // English
-                new GradeSubject { Id = 358, GradeId = 40, SubjectId = 1, IsActive = true }, // Mathematics
-                new GradeSubject { Id = 359, GradeId = 40, SubjectId = 4, IsActive = true }, // Social Studies
-                new GradeSubject { Id = 360, GradeId = 40, SubjectId = 36, IsActive = true }, // Science
-                new GradeSubject { Id = 361, GradeId = 40, SubjectId = 33, IsActive = true }, // Computer Studies
-                new GradeSubject { Id = 362, GradeId = 40, SubjectId = 25, IsActive = true }, // MDE
-                // Optional subjects for Grade 12 W
-                new GradeSubject { Id = 363, GradeId = 40, SubjectId = 17, IsActive = true, IsOptional = true }, // Accounts
-                new GradeSubject { Id = 364, GradeId = 40, SubjectId = 22, IsActive = true, IsOptional = true }, // Literature in English
-                new GradeSubject { Id = 365, GradeId = 40, SubjectId = 12, IsActive = true, IsOptional = true }, // Agriculture Science
-                new GradeSubject { Id = 366, GradeId = 40, SubjectId = 15, IsActive = true, IsOptional = true }, // Religious Education
-                new GradeSubject { Id = 367, GradeId = 40, SubjectId = 37, IsActive = true, IsOptional = true }, // Commerce
-                new GradeSubject { Id = 368, GradeId = 40, SubjectId = 26, IsActive = true, IsOptional = true }, // Home Economics
-                new GradeSubject { Id = 369, GradeId = 40, SubjectId = 24, IsActive = true, IsOptional = true }, // Music
-                new GradeSubject { Id = 370, GradeId = 40, SubjectId = 16, IsActive = true, IsOptional = true }, // Business Studies
-                new GradeSubject { Id = 371, GradeId = 40, SubjectId = 13, IsActive = true, IsOptional = true }, // History
-                new GradeSubject { Id = 372, GradeId = 40, SubjectId = 14, IsActive = true, IsOptional = true }, // Geography
-                new GradeSubject { Id = 373, GradeId = 40, SubjectId = 5, IsActive = true, IsOptional = true }, // French
-                new GradeSubject { Id = 374, GradeId = 40, SubjectId = 39, IsActive = true, IsOptional = true }, // Art & Design
-
-                // Grade 12 X
-                new GradeSubject { Id = 572, GradeId = 46, SubjectId = 2, IsActive = true }, // English
-                new GradeSubject { Id = 573, GradeId = 46, SubjectId = 1, IsActive = true }, // Mathematics
-                new GradeSubject { Id = 574, GradeId = 46, SubjectId = 4, IsActive = true }, // Social Studies
-                new GradeSubject { Id = 575, GradeId = 46, SubjectId = 36, IsActive = true }, // Science
-                new GradeSubject { Id = 576, GradeId = 46, SubjectId = 33, IsActive = true }, // Computer Studies
-                new GradeSubject { Id = 577, GradeId = 46, SubjectId = 25, IsActive = true }, // MDE
-                // Optional subjects for Grade 12 X
-                new GradeSubject { Id = 578, GradeId = 46, SubjectId = 17, IsActive = true, IsOptional = true }, // Accounts
-                new GradeSubject { Id = 579, GradeId = 46, SubjectId = 22, IsActive = true, IsOptional = true }, // Literature in English
-                new GradeSubject { Id = 580, GradeId = 46, SubjectId = 12, IsActive = true, IsOptional = true }, // Agriculture Science
-                new GradeSubject { Id = 581, GradeId = 46, SubjectId = 15, IsActive = true, IsOptional = true }, // Religious Education
-                new GradeSubject { Id = 582, GradeId = 46, SubjectId = 37, IsActive = true, IsOptional = true }, // Commerce
-                new GradeSubject { Id = 583, GradeId = 46, SubjectId = 26, IsActive = true, IsOptional = true }, // Home Economics
-                new GradeSubject { Id = 584, GradeId = 46, SubjectId = 24, IsActive = true, IsOptional = true }, // Music
-                new GradeSubject { Id = 585, GradeId = 46, SubjectId = 16, IsActive = true, IsOptional = true }, // Business Studies
-                new GradeSubject { Id = 586, GradeId = 46, SubjectId = 13, IsActive = true, IsOptional = true }, // History
-                new GradeSubject { Id = 587, GradeId = 46, SubjectId = 14, IsActive = true, IsOptional = true }, // Geography
-                new GradeSubject { Id = 588, GradeId = 46, SubjectId = 5, IsActive = true, IsOptional = true }, // French
-                new GradeSubject { Id = 589, GradeId = 46, SubjectId = 39, IsActive = true, IsOptional = true }, // Art & Design
-
-                // Grade 12 Y
-                new GradeSubject { Id = 590, GradeId = 47, SubjectId = 2, IsActive = true }, // English
-                new GradeSubject { Id = 591, GradeId = 47, SubjectId = 1, IsActive = true }, // Mathematics
-                new GradeSubject { Id = 592, GradeId = 47, SubjectId = 4, IsActive = true }, // Social Studies
-                new GradeSubject { Id = 593, GradeId = 47, SubjectId = 36, IsActive = true }, // Science
-                new GradeSubject { Id = 594, GradeId = 47, SubjectId = 33, IsActive = true }, // Computer Studies
-                new GradeSubject { Id = 595, GradeId = 47, SubjectId = 25, IsActive = true }, // MDE
-                // Optional subjects for Grade 12 Y
-                new GradeSubject { Id = 596, GradeId = 47, SubjectId = 17, IsActive = true, IsOptional = true }, // Accounts
-                new GradeSubject { Id = 597, GradeId = 47, SubjectId = 22, IsActive = true, IsOptional = true }, // Literature in English
-                new GradeSubject { Id = 598, GradeId = 47, SubjectId = 12, IsActive = true, IsOptional = true }, // Agriculture Science
-                new GradeSubject { Id = 599, GradeId = 47, SubjectId = 15, IsActive = true, IsOptional = true }, // Religious Education
-                new GradeSubject { Id = 600, GradeId = 47, SubjectId = 37, IsActive = true, IsOptional = true }, // Commerce
-                new GradeSubject { Id = 601, GradeId = 47, SubjectId = 26, IsActive = true, IsOptional = true }, // Home Economics
-                new GradeSubject { Id = 602, GradeId = 47, SubjectId = 24, IsActive = true, IsOptional = true }, // Music
-                new GradeSubject { Id = 603, GradeId = 47, SubjectId = 16, IsActive = true, IsOptional = true }, // Business Studies
-                new GradeSubject { Id = 604, GradeId = 47, SubjectId = 13, IsActive = true, IsOptional = true }, // History
-                new GradeSubject { Id = 605, GradeId = 47, SubjectId = 14, IsActive = true, IsOptional = true }, // Geography
-                new GradeSubject { Id = 606, GradeId = 47, SubjectId = 5, IsActive = true, IsOptional = true }, // French
-                new GradeSubject { Id = 607, GradeId = 47, SubjectId = 39, IsActive = true, IsOptional = true }, // Art & Design
-
-                // Add Reading (SubjectId = 8) as a core subject for secondary grades only
-                new GradeSubject { Id = 4021, GradeId = 31, SubjectId = 8, IsActive = true }, // Reading - Form 1 W
-                new GradeSubject { Id = 4022, GradeId = 32, SubjectId = 8, IsActive = true }, // Reading - Form 1 X
-                new GradeSubject { Id = 4025, GradeId = 35, SubjectId = 8, IsActive = true }, // Reading - Grade 10 V
-                new GradeSubject { Id = 4026, GradeId = 36, SubjectId = 8, IsActive = true }, // Reading - Grade 10 W
-                new GradeSubject { Id = 4027, GradeId = 37, SubjectId = 8, IsActive = true }, // Reading - Grade 11 V
-                new GradeSubject { Id = 4028, GradeId = 38, SubjectId = 8, IsActive = true }, // Reading - Grade 11 W
-                new GradeSubject { Id = 4029, GradeId = 39, SubjectId = 8, IsActive = true }, // Reading - Grade 12 V
-                new GradeSubject { Id = 4030, GradeId = 40, SubjectId = 8, IsActive = true }, // Reading - Grade 12 W
-                new GradeSubject { Id = 4031, GradeId = 41, SubjectId = 8, IsActive = true }, // Reading - Form 1 Y
-                new GradeSubject { Id = 4032, GradeId = 42, SubjectId = 8, IsActive = true }, // Reading - Grade 10 X
-                new GradeSubject { Id = 4033, GradeId = 43, SubjectId = 8, IsActive = true }, // Reading - Grade 10 Y
-                new GradeSubject { Id = 4034, GradeId = 44, SubjectId = 8, IsActive = true }, // Reading - Grade 11 X
-                new GradeSubject { Id = 4035, GradeId = 45, SubjectId = 8, IsActive = true }, // Reading - Grade 11 Y
-                new GradeSubject { Id = 4036, GradeId = 46, SubjectId = 8, IsActive = true }, // Reading - Grade 12 X
-                new GradeSubject { Id = 4037, GradeId = 47, SubjectId = 8, IsActive = true } // Reading - Grade 12 Y
             );
         }
     }

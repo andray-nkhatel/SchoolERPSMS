@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using BluebirdCore.Services;
+using SchoolErpSMS.Services;
 using Microsoft.AspNetCore.Authorization;
 
-namespace BluebirdCore.Controllers
+namespace SchoolErpSMS.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

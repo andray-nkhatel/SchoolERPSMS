@@ -1,4 +1,4 @@
-namespace BluebirdCore.Models
+namespace SchoolErpSMS.Models
 {
     /// <summary>
     /// Configuration settings for school branding and customization

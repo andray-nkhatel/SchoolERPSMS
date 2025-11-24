@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace BluebirdCore.Filters
+namespace SchoolErpSMS.Filters
 {
 
     public class ValidationFilter : IActionFilter

@@ -1,11 +1,11 @@
-using BluebirdCore.Data;
-using BluebirdCore.DTOs;
-using BluebirdCore.Entities;
+using SchoolErpSMS.Data;
+using SchoolErpSMS.DTOs;
+using SchoolErpSMS.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace BluebirdCore.Controllers
+namespace SchoolErpSMS.Controllers
 {
 
     [ApiController]

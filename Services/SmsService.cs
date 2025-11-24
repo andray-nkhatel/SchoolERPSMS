@@ -2,7 +2,7 @@ using System.Net.Http;
 using System.Text;
 using System.Net;
 
-namespace BluebirdCore.Services
+namespace SchoolErpSMS.Services
 {
     public interface ISmsService
     {

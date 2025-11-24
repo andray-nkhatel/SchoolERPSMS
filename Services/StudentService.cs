@@ -1,13 +1,13 @@
-using BluebirdCore.Data;
-using BluebirdCore.DTOs;
-using BluebirdCore.Entities;
+using SchoolErpSMS.Data;
+using SchoolErpSMS.DTOs;
+using SchoolErpSMS.Entities;
 using Microsoft.EntityFrameworkCore;
 using CsvHelper;
 using CsvHelper.Configuration;
 using System.Globalization;
 using System.Linq;
 
-namespace BluebirdCore.Services
+namespace SchoolErpSMS.Services
 {
     public interface IStudentService
     {

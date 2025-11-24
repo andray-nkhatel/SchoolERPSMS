@@ -4,14 +4,14 @@
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using BluebirdCore.Entities;
+using SchoolErpSMS.Entities;
 using Microsoft.EntityFrameworkCore;
-using BluebirdCore.Data;
+using SchoolErpSMS.Data;
 using QuestPDF.Previewer;
-using BluebirdCore.DTOs;
-using BluebirdCore.Models;
+using SchoolErpSMS.DTOs;
+using SchoolErpSMS.Models;
 
-namespace BluebirdCore.Services
+namespace SchoolErpSMS.Services
 {
     public class ReportCardPdfService
     {

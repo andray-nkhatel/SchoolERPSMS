@@ -1,8 +1,8 @@
-using BluebirdCore.Data;
-using BluebirdCore.Entities;
+using SchoolErpSMS.Data;
+using SchoolErpSMS.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace BluebirdCore.Services
+namespace SchoolErpSMS.Services
 {
     public class BabyClassSkillService : IBabyClassSkillService
     {

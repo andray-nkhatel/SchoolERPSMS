@@ -1,9 +1,9 @@
-using BluebirdCore.Data;
-using BluebirdCore.Entities;
+using SchoolErpSMS.Data;
+using SchoolErpSMS.Entities;
 using Microsoft.EntityFrameworkCore;
-using BluebirdCore.DTOs;
+using SchoolErpSMS.DTOs;
 
-namespace BluebirdCore.Services
+namespace SchoolErpSMS.Services
 {
      public interface IUserService
     {

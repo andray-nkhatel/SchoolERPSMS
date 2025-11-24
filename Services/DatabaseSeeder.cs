@@ -1,8 +1,8 @@
-using BluebirdCore.Data;
-using BluebirdCore.Entities;
+using SchoolErpSMS.Data;
+using SchoolErpSMS.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace BluebirdCore.Services
+namespace SchoolErpSMS.Services
 {
     public interface IDatabaseSeeder
     {
@@ -45,6 +45,35 @@ namespace BluebirdCore.Services
                 foreach (var user in existingUsers)
                 {
                     //_logger.LogInformation($"👤 Existing user: {user.Username} ({user.Email}) [{user.Role}] - Active: {user.IsActive}");
+                }
+
+                // Ensure admin user exists with correct password (root@scherp25)
+                var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.Username == "admin");
+                if (adminUser != null)
+                {
+                    // Update admin password to ensure it's correct
+                    adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword("root@scherp25");
+                    adminUser.IsActive = true;
+                    await _context.SaveChangesAsync();
+                    //_logger.LogInformation("✅ Admin user password updated");
+                }
+                else
+                {
+                    // Create admin user if it doesn't exist
+                    var adminPasswordHash = BCrypt.Net.BCrypt.HashPassword("root@scherp25");
+                    var newAdmin = new User
+                    {
+                        Username = "admin",
+                        PasswordHash = adminPasswordHash,
+                        FullName = "System Admin",
+                        Email = "admin@scherp.sch.edu",
+                        Role = UserRole.Admin,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _context.Users.Add(newAdmin);
+                    await _context.SaveChangesAsync();
+                    //_logger.LogInformation("✅ Admin user created");
                 }
 
                 // Check for teacher by username OR email to avoid duplicates
@@ -175,56 +204,10 @@ namespace BluebirdCore.Services
                     }
                 }
 
-                // Add sample student if not exists
-                var studentCount = await _context.Students.CountAsync();
-                _logger.LogInformation($"📊 Current student count: {studentCount}");
-
-                Student? johnMbuki = null;
-                if (studentCount == 0)
-                {
-                    //_logger.LogInformation("➕ Creating sample student...");
-                    
-                    var sampleStudent = new Student
-                    {
-                        FirstName = "John",
-                        LastName = "Mbuki",
-                        StudentNumber = "24001",
-                        DateOfBirth = new DateTime(2010, 5, 15),
-                        Gender = "Male",
-                        GradeId = 32, // Grade 1
-                        GuardianName = "John Doe",
-                        GuardianPhone = "+260123456789",
-                        Address = "123 Sample Street, Lusaka",
-                        EnrollmentDate = DateTime.UtcNow
-                    };
-
-                    _context.Students.Add(sampleStudent);
-                    
-                    try
-                    {
-                        await _context.SaveChangesAsync();
-                        johnMbuki = sampleStudent;
-                        //_logger.LogInformation("✅ Sample student created successfully");
-                    }
-                    catch (Exception studentEx)
-                    {
-                        //  _logger.LogError(
-                        // Don't throw - student creation is not critical
-                    }
-                }
-                else
-                {
-                    //_logger.LogInformation("ℹ️ Students already exist, skipping student creation");
-                    // Find John Mbuki if he exists
-                    johnMbuki = await _context.Students
-                        .FirstOrDefaultAsync(s => s.FirstName == "John" && s.LastName == "Mbuki");
-                }
-
-                // Seed exam scores for John Mbuki if he exists
-                if (johnMbuki != null)
-                {
-                    await SeedStudentExamScoresAsync(johnMbuki);
-                }
+                // Seed 5 students with Zambian names, GradeId 2, and exam scores
+                _logger.LogInformation("🌱 Starting to seed Zambian students with exam scores...");
+                await SeedZambianStudentsWithScoresAsync();
+                _logger.LogInformation("✅ Completed seeding Zambian students");
 
                 // Final verification
                 var finalUserCount = await _context.Users.CountAsync();
@@ -248,76 +231,277 @@ namespace BluebirdCore.Services
             }
         }
 
-                private async Task SeedBabyClassSkillsAsync()
+        private async Task SeedZambianStudentsWithScoresAsync()
         {
             try
             {
-                // Check if Baby Class Skills already exist
-                var existingSkills = await _context.BabyClassSkills.CountAsync();
-                if (existingSkills > 0)
+                // First, get or find the grade we need (Form 1, Stream X, or Id 2)
+                var grade = await _context.Grades.FirstOrDefaultAsync(g => g.Id == 2);
+                if (grade == null)
                 {
-                    //_logger.LogInformation("ℹ️ Baby Class Skills already exist, skipping seeding");
+                    grade = await _context.Grades.FirstOrDefaultAsync(g => 
+                        g.Name == "Form 1" && g.Stream == "X");
+                }
+                
+                if (grade == null)
+                {
+                    _logger.LogWarning("⚠️ Grade 'Form 1 X' not found. Cannot seed students.");
+                    return;
+                }
+                
+                // Get AcademicYear for 2025 (should be Id 1 based on seed data)
+                var academicYear = await _context.AcademicYears.FirstOrDefaultAsync(ay => ay.Id == 1);
+                if (academicYear == null)
+                {
+                    academicYear = await _context.AcademicYears.FirstOrDefaultAsync(ay => ay.Name == "2025" || ay.Name.Contains("2025"));
+                }
+                if (academicYear == null)
+                {
+                    academicYear = await _context.AcademicYears.FirstOrDefaultAsync(ay => ay.IsActive);
+                }
+                if (academicYear == null)
+                {
+                    _logger.LogWarning("⚠️ AcademicYear not found. Cannot check existing scores.");
                     return;
                 }
 
-                //_logger.LogInformation("🌱 Seeding Baby Class Skills...");
+                // Get all students with this grade
+                var gradeStudents = await _context.Students
+                    .Where(s => s.GradeId == grade.Id)
+                    .ToListAsync();
 
-                // Create Baby Class Skills
-                var skills = new List<BabyClassSkill>
+                // Check which students have complete scores (9+ subjects) for Term 3, 2025
+                var studentsWithCompleteScores = new List<Student>();
+                var studentsNeedingScores = new List<Student>();
+                
+                foreach (var student in gradeStudents)
                 {
-                    new BabyClassSkill { Id = 1, Name = "Communication Skills", Description = "Verbal communication abilities", Order = 1, IsActive = true },
-                    new BabyClassSkill { Id = 2, Name = "Social Emotional Skills", Description = "Social interaction and emotional development", Order = 2, IsActive = true },
-                    new BabyClassSkill { Id = 3, Name = "Reading & Writing", Description = "Early literacy skills", Order = 3, IsActive = true },
-                    new BabyClassSkill { Id = 4, Name = "Colour & Shapes", Description = "Visual recognition and identification", Order = 4, IsActive = true },
-                    new BabyClassSkill { Id = 5, Name = "Numbers", Description = "Basic numeracy skills", Order = 5, IsActive = true },
-                    new BabyClassSkill { Id = 6, Name = "Fine-Motor Skills", Description = "Small muscle coordination and control", Order = 6, IsActive = true },
-                    new BabyClassSkill { Id = 7, Name = "Gross Motor Skills", Description = "Large muscle movement and coordination", Order = 7, IsActive = true }
-                };
+                    var scoreCount = await _context.ExamScores
+                        .CountAsync(es => 
+                            es.StudentId == student.Id && 
+                            es.AcademicYear == academicYear.Id && 
+                            es.Term == 3);
+                    
+                    if (scoreCount >= 9)
+                    {
+                        studentsWithCompleteScores.Add(student);
+                    }
+                    else
+                    {
+                        studentsNeedingScores.Add(student);
+                    }
+                }
 
-                _context.BabyClassSkills.AddRange(skills);
+                _logger.LogInformation($"📊 Found {studentsWithCompleteScores.Count} students with complete scores, {studentsNeedingScores.Count} students needing scores, {gradeStudents.Count} total students in grade.");
 
-                // Create Baby Class Skill Items
-                var skillItems = new List<BabyClassSkillItem>
+                // If we already have 5+ students with complete scores, we're done
+                if (studentsWithCompleteScores.Count >= 5)
                 {
-                    // Communication Skills (SkillId = 1)
-                    new BabyClassSkillItem { Id = 1, SkillId = 1, Name = "Speaks Clearly", Description = "Ability to articulate words clearly", Order = 1, IsActive = true },
-                    new BabyClassSkillItem { Id = 2, SkillId = 1, Name = "Responds to direct questions", Description = "Ability to answer questions appropriately", Order = 2, IsActive = true },
-                    
-                    // Social Emotional Skills (SkillId = 2)
-                    new BabyClassSkillItem { Id = 3, SkillId = 2, Name = "Know first name", Description = "Recognition and response to own name", Order = 1, IsActive = true },
-                    new BabyClassSkillItem { Id = 4, SkillId = 2, Name = "Follows Instruction", Description = "Ability to follow simple instructions", Order = 2, IsActive = true },
-                    new BabyClassSkillItem { Id = 5, SkillId = 2, Name = "Shares well with others", Description = "Cooperative play and sharing behavior", Order = 3, IsActive = true },
-                    
-                    // Reading & Writing (SkillId = 3)
-                    new BabyClassSkillItem { Id = 6, SkillId = 3, Name = "Know how to say letterland characters", Description = "Recognition and pronunciation of letter sounds", Order = 1, IsActive = true },
-                    new BabyClassSkillItem { Id = 7, SkillId = 3, Name = "Able to say sounds", Description = "Phonetic awareness and sound production", Order = 2, IsActive = true },
-                    
-                    // Colour & Shapes (SkillId = 4)
-                    new BabyClassSkillItem { Id = 8, SkillId = 4, Name = "Know Primary Colours", Description = "Recognition of basic colors", Order = 1, IsActive = true },
-                    new BabyClassSkillItem { Id = 9, SkillId = 4, Name = "Knows Shapes", Description = "Recognition of basic geometric shapes", Order = 2, IsActive = true },
-                    
-                    // Numbers (SkillId = 5)
-                    new BabyClassSkillItem { Id = 10, SkillId = 5, Name = "Able to count", Description = "Basic counting ability", Order = 1, IsActive = true },
-                    new BabyClassSkillItem { Id = 11, SkillId = 5, Name = "Orally from 1 - 10", Description = "Verbal counting from 1 to 10", Order = 2, IsActive = true },
-                    
-                    // Fine-Motor Skills (SkillId = 6)
-                    new BabyClassSkillItem { Id = 12, SkillId = 6, Name = "Can hold and use a pencil", Description = "Pencil grip and control", Order = 1, IsActive = true },
-                    new BabyClassSkillItem { Id = 13, SkillId = 6, Name = "Can hold and use a Crayon", Description = "Crayon grip and coloring ability", Order = 2, IsActive = true },
-                    new BabyClassSkillItem { Id = 14, SkillId = 6, Name = "Able to Trace", Description = "Tracing and copying skills", Order = 3, IsActive = true },
-                    
-                    // Gross Motor Skills (SkillId = 7)
-                    new BabyClassSkillItem { Id = 15, SkillId = 7, Name = "Can jump up and down", Description = "Basic jumping and movement coordination", Order = 1, IsActive = true }
-                };
+                    _logger.LogInformation($"ℹ️ Found {studentsWithCompleteScores.Count} students with {grade.Name} {grade.Stream} (Id: {grade.Id}) that already have complete exam scores (9+ subjects) for Term 3, 2025. Skipping seeding.");
+                    return;
+                }
 
-                _context.BabyClassSkillItems.AddRange(skillItems);
+                _logger.LogInformation($"🌱 Proceeding with seeding for {grade.Name} {grade.Stream} (Id: {grade.Id})...");
 
+                // Zambian first names and last names
+                var zambianFirstNames = new[] { "Chanda", "Mwape", "Bwalya", "Mulenga", "Tembo", "Mwansa", "Phiri", "Banda", "Mwanza", "Kunda" };
+                var zambianLastNames = new[] { "Mbewe", "Ngoma", "Sichone", "Mwanza", "Kunda", "Banda", "Phiri", "Tembo", "Mulenga", "Mwape" };
+
+                // Get teacher mutale
+                var teacherMutale = await _context.Users.FirstOrDefaultAsync(u => u.Username == "mutale");
+                if (teacherMutale == null)
+                {
+                    _logger.LogError("⚠️ Teacher 'mutale' not found. Cannot seed student exam scores.");
+                    throw new InvalidOperationException("Teacher 'mutale' not found. Cannot seed student exam scores.");
+                }
+                _logger.LogInformation($"✅ Found teacher 'mutale' with ID: {teacherMutale.Id}");
+
+                // Get End-of-Term exam type
+                var endOfTermExamType = await _context.ExamTypes.FirstOrDefaultAsync(et => et.Name == "End-of-Term");
+                if (endOfTermExamType == null)
+                {
+                    _logger.LogError("⚠️ End-of-Term exam type not found. Cannot seed exam scores.");
+                    throw new InvalidOperationException("End-of-Term exam type not found. Cannot seed exam scores.");
+                }
+                _logger.LogInformation($"✅ Found 'End-of-Term' exam type with ID: {endOfTermExamType.Id}");
+                _logger.LogInformation($"✅ Using AcademicYear with ID: {academicYear.Id}, Name: {academicYear.Name}");
+
+                // Get all active subjects and randomly select 9
+                var allSubjects = await _context.Subjects.Where(s => s.IsActive).ToListAsync();
+                if (allSubjects.Count < 9)
+                {
+                    _logger.LogError($"⚠️ Not enough subjects found. Found {allSubjects.Count}, need 9.");
+                    throw new InvalidOperationException($"Not enough subjects found. Found {allSubjects.Count}, need 9.");
+                }
+                _logger.LogInformation($"✅ Found {allSubjects.Count} active subjects");
+
+                var random = new Random();
+                var selectedSubjects = allSubjects.OrderBy(x => random.Next()).Take(9).ToList();
+
+                // Determine which students to work with
+                var studentsToProcess = new List<Student>();
+                
+                // First, use existing students that need scores
+                studentsToProcess.AddRange(studentsNeedingScores);
+                
+                // If we need more students to reach 5 total, create new ones
+                int studentsNeeded = 5 - studentsWithCompleteScores.Count;
+                if (studentsNeeded > studentsNeedingScores.Count)
+                {
+                    int newStudentsToCreate = studentsNeeded - studentsNeedingScores.Count;
+                    _logger.LogInformation($"➕ Creating {newStudentsToCreate} new students to reach 5 total...");
+                    
+                    var usedNames = new HashSet<string>(gradeStudents.Select(s => s.FullName));
+                    var newStudents = new List<Student>();
+
+                    for (int i = 0; i < newStudentsToCreate; i++)
+                    {
+                        string firstName, lastName, fullName;
+                        string studentNumber;
+                        
+                        // Ensure unique names
+                        do
+                        {
+                            firstName = zambianFirstNames[random.Next(zambianFirstNames.Length)];
+                            lastName = zambianLastNames[random.Next(zambianLastNames.Length)];
+                            fullName = $"{firstName} {lastName}";
+                        } while (usedNames.Contains(fullName));
+                        
+                        usedNames.Add(fullName);
+
+                        // Generate unique student number
+                        do
+                        {
+                            studentNumber = $"24{random.Next(100, 999)}";
+                        } while (await _context.Students.AnyAsync(s => s.StudentNumber == studentNumber));
+
+                        var student = new Student
+                        {
+                            FirstName = firstName,
+                            LastName = lastName,
+                            StudentNumber = studentNumber,
+                            DateOfBirth = new DateTime(2010 + random.Next(-2, 3), random.Next(1, 13), random.Next(1, 29)),
+                            Gender = random.Next(2) == 0 ? "Male" : "Female",
+                            GradeId = grade.Id,
+                            GuardianName = $"{lastName} Family",
+                            GuardianPhone = "260975268666",
+                            Address = $"Sample Address {i + 1}, Lusaka",
+                            EnrollmentDate = DateTime.UtcNow.AddDays(-random.Next(30, 365))
+                        };
+
+                        newStudents.Add(student);
+                    }
+
+                    _context.Students.AddRange(newStudents);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation($"✅ Created {newStudents.Count} new students with Zambian names");
+                    
+                    studentsToProcess.AddRange(newStudents);
+                }
+                else
+                {
+                    _logger.LogInformation($"✅ Using {studentsNeedingScores.Count} existing students that need scores");
+                }
+
+                // Verify all students to process
+                var verifiedStudents = new List<Student>();
+                foreach (var student in studentsToProcess)
+                {
+                    var verified = await _context.Students.FindAsync(student.Id);
+                    if (verified != null)
+                    {
+                        verifiedStudents.Add(verified);
+                    }
+                }
+                
+                _logger.LogInformation($"✅ Processing {verifiedStudents.Count} students for exam score creation");
+                
+                // Log student details
+                foreach (var student in verifiedStudents)
+                {
+                    _logger.LogInformation($"   - {student.FullName} (ID: {student.Id}, Student Number: {student.StudentNumber}, GradeId: {student.GradeId})");
+                }
+
+                // Create exam scores for each verified student in the 9 selected subjects
+                var examScores = new List<ExamScore>();
+                _logger.LogInformation($"📝 Creating exam scores for {verifiedStudents.Count} students in {selectedSubjects.Count} subjects...");
+                
+                foreach (var student in verifiedStudents)
+                {
+                    _logger.LogInformation($"   Processing scores for {student.FullName} (ID: {student.Id})...");
+                    
+                    // Get existing scores for this student for Term 3, 2025
+                    var existingScores = await _context.ExamScores
+                        .Where(es => 
+                            es.StudentId == student.Id && 
+                            es.AcademicYear == 2025 && 
+                            es.Term == 3)
+                        .Select(es => es.SubjectId)
+                        .ToListAsync();
+                    
+                    int scoresAdded = 0;
+                    foreach (var subject in selectedSubjects)
+                    {
+                        // Skip if student already has a score for this subject
+                        if (existingScores.Contains(subject.Id))
+                        {
+                            continue;
+                        }
+                        
+                        // Generate random score between 0 and 100
+                        var randomScore = random.Next(0, 101);
+
+                        examScores.Add(new ExamScore
+                        {
+                            StudentId = student.Id,
+                            SubjectId = subject.Id,
+                            ExamTypeId = endOfTermExamType.Id,
+                            GradeId = grade.Id,
+                            Score = randomScore,
+                            IsAbsent = false,
+                            AcademicYear = academicYear.Id,
+                            Term = 3,
+                            RecordedAt = DateTime.UtcNow,
+                            RecordedBy = teacherMutale.Id
+                        });
+                        scoresAdded++;
+                    }
+                    
+                    if (scoresAdded > 0)
+                    {
+                        _logger.LogInformation($"   ✅ Added {scoresAdded} new exam scores for {student.FullName} (already had {existingScores.Count} scores)");
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"   ℹ️ {student.FullName} already has all {selectedSubjects.Count} exam scores");
+                    }
+                }
+
+                _logger.LogInformation($"💾 Saving {examScores.Count} exam scores to database...");
+                _context.ExamScores.AddRange(examScores);
                 await _context.SaveChangesAsync();
-                //_logger.LogInformation("✅ Baby Class Skills seeded successfully");
+
+                // Verify exam scores were saved
+                var verifiedStudentIds = verifiedStudents.Select(s => s.Id).ToList();
+                var savedScoreCount = await _context.ExamScores
+                    .CountAsync(es => 
+                        verifiedStudentIds.Contains(es.StudentId) && 
+                        es.AcademicYear == academicYear.Id && 
+                        es.Term == 3);
+                
+                _logger.LogInformation($"✅ Created and verified {savedScoreCount} exam scores for {verifiedStudents.Count} students in {selectedSubjects.Count} subjects (Term 3, {academicYear.Name})");
             }
             catch (Exception ex)
             {
-                //_logger.LogError(ex, "❌ Error seeding Baby Class Skills");
-                // Don't throw - this is not critical for app startup
+                _logger.LogError(ex, "❌ Error seeding Zambian students with exam scores");
+                _logger.LogError($"Error details: {ex.Message}");
+                _logger.LogError($"Stack trace: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    _logger.LogError($"Inner exception: {ex.InnerException.Message}");
+                }
+                // Re-throw so the caller knows seeding failed
+                throw;
             }
         }
 
@@ -325,15 +509,31 @@ namespace BluebirdCore.Services
         {
             try
             {
+                // Get AcademicYear for 2025 (should be Id 1 based on seed data)
+                var academicYear = await _context.AcademicYears.FirstOrDefaultAsync(ay => ay.Id == 1);
+                if (academicYear == null)
+                {
+                    academicYear = await _context.AcademicYears.FirstOrDefaultAsync(ay => ay.Name == "2025" || ay.Name.Contains("2025"));
+                }
+                if (academicYear == null)
+                {
+                    academicYear = await _context.AcademicYears.FirstOrDefaultAsync(ay => ay.IsActive);
+                }
+                if (academicYear == null)
+                {
+                    _logger.LogWarning("⚠️ AcademicYear not found. Cannot seed exam scores.");
+                    return;
+                }
+
                 // Check if marks already exist for this student for Term 3, End-of-Term, 2025
                 var existingMarks = await _context.ExamScores
                     .AnyAsync(es => es.StudentId == student.Id && 
-                                   es.AcademicYear == 2025 && 
+                                   es.AcademicYear == academicYear.Id && 
                                    es.Term == 3);
 
                 if (existingMarks)
                 {
-                    _logger.LogInformation($"ℹ️ Exam scores already exist for {student.FullName} for Term 3, 2025. Skipping seeding.");
+                    _logger.LogInformation($"ℹ️ Exam scores already exist for {student.FullName} for Term 3, {academicYear.Name}. Skipping seeding.");
                     return;
                 }
 
@@ -376,7 +576,7 @@ namespace BluebirdCore.Services
                         GradeId = student.GradeId,
                         Score = 78,
                         IsAbsent = false,
-                        AcademicYear = 2025,
+                        AcademicYear = academicYear.Id,
                         Term = 3,
                         RecordedAt = DateTime.UtcNow,
                         RecordedBy = adminUser.Id
@@ -394,7 +594,7 @@ namespace BluebirdCore.Services
                         GradeId = student.GradeId,
                         Score = 82,
                         IsAbsent = false,
-                        AcademicYear = 2025,
+                        AcademicYear = academicYear.Id,
                         Term = 3,
                         RecordedAt = DateTime.UtcNow,
                         RecordedBy = adminUser.Id
@@ -412,7 +612,7 @@ namespace BluebirdCore.Services
                         GradeId = student.GradeId,
                         Score = 74,
                         IsAbsent = false,
-                        AcademicYear = 2025,
+                        AcademicYear = academicYear.Id,
                         Term = 3,
                         RecordedAt = DateTime.UtcNow,
                         RecordedBy = adminUser.Id
@@ -430,7 +630,7 @@ namespace BluebirdCore.Services
                         GradeId = student.GradeId,
                         Score = 69,
                         IsAbsent = false,
-                        AcademicYear = 2025,
+                        AcademicYear = academicYear.Id,
                         Term = 3,
                         RecordedAt = DateTime.UtcNow,
                         RecordedBy = adminUser.Id

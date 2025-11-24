@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace BluebirdCore.Entities
+namespace SchoolErpSMS.Entities
 {
     /// <summary>
     /// Entity for logging SMS messages sent through the system

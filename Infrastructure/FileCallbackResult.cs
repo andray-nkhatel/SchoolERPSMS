@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace BluebirdCore.Infrastructure
+namespace SchoolErpSMS.Infrastructure
 {
     public class FileCallbackResult : IActionResult
     {

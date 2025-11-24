@@ -2,9 +2,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using BluebirdCore.Data;
-using BluebirdCore.Services;
-using BluebirdCore.Models;
+using SchoolErpSMS.Data;
+using SchoolErpSMS.Services;
+using SchoolErpSMS.Models;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.IdentityModel.Tokens.Jwt;
@@ -122,12 +122,12 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "School Management System API",
+        Title = "School ERP API",
         Version = "v2.0",
         Description = "A comprehensive School Management System API for managing students, teachers, subjects, exams, and report cards",
         Contact = new OpenApiContact
         {
-            Name = "School Management System",
+            Name = "School ERP",
             Email = schoolSettings.Email
         }
     });
@@ -166,17 +166,14 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // ===== CORS CONFIGURATION =====
-var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
-    ?? new[] { "http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000" };
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins(corsOrigins)
+        policy.SetIsOriginAllowed(origin => true)  // Allow any origin
             .AllowAnyMethod()
             .AllowAnyHeader()
-            .AllowCredentials();  // Required for JWT tokens in Authorization header
+            .AllowCredentials();  // Required for cookies and JWT tokens
     });
 });
 

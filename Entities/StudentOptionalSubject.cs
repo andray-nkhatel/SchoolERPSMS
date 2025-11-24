@@ -1,6 +1,6 @@
-using BluebirdCore.Entities;
+using SchoolErpSMS.Entities;
 
-namespace BluebirdCore.Entities
+namespace SchoolErpSMS.Entities
 {
     public class StudentOptionalSubject
     {

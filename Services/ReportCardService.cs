@@ -1,5 +1,5 @@
-using BluebirdCore.Data;
-using BluebirdCore.Entities;
+using SchoolErpSMS.Data;
+using SchoolErpSMS.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Caching.Memory;
@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 
-namespace BluebirdCore.Services
+namespace SchoolErpSMS.Services
 {
     public interface IReportCardService
     {
@@ -543,7 +543,7 @@ namespace BluebirdCore.Services
         // TEMP: SMTP test method
         public async Task TestSmtpSend(string toEmail)
         {
-            var dummyContent = System.Text.Encoding.UTF8.GetBytes("This is a test email from BluebirdCore SMTP test.");
+            var dummyContent = System.Text.Encoding.UTF8.GetBytes("This is a test email from SchoolErpSMS SMTP test.");
             await _emailService.SendEmailWithAttachmentAsync(
                 toEmail,
                 "SMTP Test Email",

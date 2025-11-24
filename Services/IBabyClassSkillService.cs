@@ -1,6 +1,6 @@
-using BluebirdCore.Entities;
+using SchoolErpSMS.Entities;
 
-namespace BluebirdCore.Services
+namespace SchoolErpSMS.Services
 {
     public interface IBabyClassSkillService
     {

@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 using System.IO;
 
-namespace BluebirdCore.Data
+namespace SchoolErpSMS.Data
 {
     public class SchoolDbContextFactory : IDesignTimeDbContextFactory<SchoolDbContext>
     {

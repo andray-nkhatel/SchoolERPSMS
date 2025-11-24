@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using BluebirdCore.Data;
-using BluebirdCore.DTOs;
-using BluebirdCore.Entities;
-using BluebirdCore.Models;
+using SchoolErpSMS.Data;
+using SchoolErpSMS.DTOs;
+using SchoolErpSMS.Entities;
+using SchoolErpSMS.Models;
 using System.Security.Claims;
 
-namespace BluebirdCore.Services
+namespace SchoolErpSMS.Services
 {
     public interface IHomeroomService
     {

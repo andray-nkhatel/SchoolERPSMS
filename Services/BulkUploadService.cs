@@ -1,8 +1,8 @@
 using System.Text;
 using Microsoft.AspNetCore.Http;
 using System.Globalization;
-using BluebirdCore.Entities;
-using BluebirdCore.Data;
+using SchoolErpSMS.Entities;
+using SchoolErpSMS.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace SchoolManagementSystem.Services

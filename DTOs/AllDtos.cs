@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using BluebirdCore.Entities;
+using SchoolErpSMS.Entities;
 
-namespace BluebirdCore.DTOs
+namespace SchoolErpSMS.DTOs
 {
     public class LoginDto
     {

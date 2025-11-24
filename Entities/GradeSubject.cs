@@ -1,4 +1,4 @@
-namespace BluebirdCore.Entities
+namespace SchoolErpSMS.Entities
 {
     public class GradeSubject
     {

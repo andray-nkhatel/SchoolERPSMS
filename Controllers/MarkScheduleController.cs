@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
-using BluebirdCore.Data;
+using SchoolErpSMS.Data;
 using Microsoft.EntityFrameworkCore;
-using BluebirdCore.Services;
+using SchoolErpSMS.Services;
 
-namespace BluebirdCore.Controllers
+namespace SchoolErpSMS.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

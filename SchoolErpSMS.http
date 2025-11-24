@@ -1,20 +1,20 @@
-@BluebirdCore_HostAddress = http://localhost:5287
+@SchoolErpSMS_HostAddress = http://localhost:5287
 
-GET {{BluebirdCore_HostAddress}}/weatherforecast/
+GET {{SchoolErpSMS_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
 
 # Test the new email endpoint for sending zipped and merged report cards
 # Note: This requires Admin authentication and existing report cards for the specified grade
-POST {{BluebirdCore_HostAddress}}/api/ReportCards/send/class/1/email?academicYear=2024&term=1
+POST {{SchoolErpSMS_HostAddress}}/api/ReportCards/send/class/1/email?academicYear=2024&term=1
 Authorization: Bearer YOUR_JWT_TOKEN_HERE
 Content-Type: application/json
 
 ###
 
 # Alternative test with academic year ID instead of year
-POST {{BluebirdCore_HostAddress}}/api/ReportCards/send/class/13/email?academicYear=1&term=1
+POST {{SchoolErpSMS_HostAddress}}/api/ReportCards/send/class/13/email?academicYear=1&term=1
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwidW5pcXVlX25hbWUiOiJhZG1pbiIsImVtYWlsIjoiYWRtaW5AY2hzc2Nob29sLmNvbSIsInJvbGUiOiJBZG1pbiIsIkZ1bGxOYW1lIjoiU3lzdGVtIEFkbWluaXN0cmF0b3IiLCJuYmYiOjE3NTI5OTQwOTEsImV4cCI6MTc1MzU5ODg5MSwiaWF0IjoxNzUyOTk0MDkxLCJpc3MiOiJCbHVlYmlyZFN5c3RlbSIsImF1ZCI6IkJsdWViaXJkU3lzdGVtIn0.9Hzhzv_T6eeMR8XuEkS9GxfTFXR3a3XCOci9TIrQ63U
 Content-Type: application/json
 

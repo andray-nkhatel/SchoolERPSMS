@@ -7,9 +7,3 @@ obj/
 *.exe
 *.pdb
 *.zip
-bin/
-obj/
-*.zip
-*.dll
-*.exe
-*.pdb

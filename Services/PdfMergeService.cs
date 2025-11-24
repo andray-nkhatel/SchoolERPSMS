@@ -5,7 +5,7 @@ using PdfSharp.Pdf.IO;
 using PdfSharpPdfDocument = PdfSharp.Pdf.PdfDocument;
 using PdfSharpPdfReader = PdfSharp.Pdf.IO.PdfReader;
 
-namespace BluebirdCore.Services
+namespace SchoolErpSMS.Services
 {
     public interface IPdfMergeService
     {

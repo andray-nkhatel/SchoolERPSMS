@@ -1,11 +1,11 @@
-using BluebirdCore.DTOs;
-using BluebirdCore.Entities;
-using BluebirdCore.Services;
+using SchoolErpSMS.DTOs;
+using SchoolErpSMS.Entities;
+using SchoolErpSMS.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
-namespace BluebirdCore.Controllers
+namespace SchoolErpSMS.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

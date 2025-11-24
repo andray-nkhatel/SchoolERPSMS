@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace BluebirdCore.DTOs
+namespace SchoolErpSMS.DTOs
 {
     // Secondary Subject Assignment DTOs
     public class AssignSecondarySubjectDto

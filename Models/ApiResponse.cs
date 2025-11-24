@@ -1,4 +1,4 @@
-namespace BluebirdCore.Models
+namespace SchoolErpSMS.Models
 {
     public class ApiResponse<T>
     {

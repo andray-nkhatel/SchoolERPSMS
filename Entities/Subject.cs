@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 
-namespace BluebirdCore.Entities
+namespace SchoolErpSMS.Entities
 {
 
     public class Subject

@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using BluebirdCore.Services;
-using BluebirdCore.Data;
-using BluebirdCore.Entities;
+using SchoolErpSMS.Services;
+using SchoolErpSMS.Data;
+using SchoolErpSMS.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 
-namespace BluebirdCore.Controllers
+namespace SchoolErpSMS.Controllers
 {
     /// <summary>
     /// SMS service endpoints for sending SMS messages via Zamtel Bulk SMS API
@@ -925,8 +925,7 @@ namespace BluebirdCore.Controllers
                 return StatusCode(500, new ErrorResponseDto 
                 { 
                     Message = "SmsLogs table test failed", 
-                    Error = ex.Message,
-                    StackTrace = ex.StackTrace
+                    Error = ex.Message
                 });
             }
         }
@@ -1227,6 +1226,7 @@ namespace BluebirdCore.Controllers
                     var n when n.Contains("french") => "Fr",
                     var n when n.Contains("art") => "Art",
                     var n when n.Contains("music") => "Music",
+                    var n when n.Contains("design") => "Des",
                     _ => subjectName.Length > 8 ? subjectName.Substring(0, 8) : subjectName
                 };
             }
@@ -1289,62 +1289,46 @@ namespace BluebirdCore.Controllers
                 var test2 = subjectGroup.FirstOrDefault(m => IsTest2(m.ExamType));
                 var endTerm = subjectGroup.FirstOrDefault(m => IsEndTerm(m.ExamType));
 
-                // Build scores string - always include all three, use "N/A" if missing
-                var scores = new List<string>();
-                
-                if (test1 != null)
-                {
-                    scores.Add($"T1:{(test1.IsAbsent ? "Abs" : ((int)Math.Round(test1.Score)).ToString())}");
-                }
-                else
-                {
-                    scores.Add("T1:N/A");
-                }
+                // Build scores string - format: "89-78-78" (T1-T2-ET)
+                // Use "0" for absent or missing marks
+                var score1 = test1 != null && !test1.IsAbsent 
+                    ? ((int)Math.Round(test1.Score)).ToString() 
+                    : "0";
+                var score2 = test2 != null && !test2.IsAbsent 
+                    ? ((int)Math.Round(test2.Score)).ToString() 
+                    : "0";
+                var score3 = endTerm != null && !endTerm.IsAbsent 
+                    ? ((int)Math.Round(endTerm.Score)).ToString() 
+                    : "0";
 
-                if (test2 != null)
-                {
-                    scores.Add($"T2:{(test2.IsAbsent ? "Abs" : ((int)Math.Round(test2.Score)).ToString())}");
-                }
-                else
-                {
-                    scores.Add("T2:N/A");
-                }
-
-                if (endTerm != null)
-                {
-                    scores.Add($"ET:{(endTerm.IsAbsent ? "Abs" : ((int)Math.Round(endTerm.Score)).ToString())}");
-                }
-                else
-                {
-                    scores.Add("ET:N/A");
-                }
-
-                // Format: "Math T1:78 T2:82 ET:85"
-                subjectScores.Add($"{subjectAbbr} {string.Join(" ", scores)}");
+                // Format: "Chem 89-78-78"
+                subjectScores.Add($"{subjectAbbr} {score1}-{score2}-{score3}");
             }
 
-            // Build the message
-            var scoresText = string.Join(", ", subjectScores);
+            // Build the message: "Alfred Thumelo F1X Term 3 2025: Chem 89-78-78; Sci 90-89-89; Des 67-99-56."
+            var scoresText = string.Join("; ", subjectScores);
             var shortClassName = ShortenClassName(className);
-            var message = $"{studentName}, {shortClassName} - Term {term} {academicYear}: {scoresText}";
+            var message = $"{studentName} {shortClassName} Term {term} {academicYear}: {scoresText}.";
 
             // Ensure message fits within SMS limit (160 chars)
-            // If too long, we'll need to truncate or use a more compact format
+            // If too long, truncate subject list
             if (message.Length > 160)
             {
-                // Calculate base message length (student name, class, term, year, separators)
-                var baseLength = studentName.Length + shortClassName.Length + 25; // 25 for " - Term {term} {year}: "
+                // Calculate base message length (student name, class, term, year, separators, period)
+                // Format: "{name} {class} Term {term} {year}: {subjects}."
+                var baseLength = studentName.Length + shortClassName.Length + 15 + term.ToString().Length + academicYear.ToString().Length; // 15 for " Term  : ."
                 var maxSubjectLength = 160 - baseLength;
                 
-                if (maxSubjectLength > 50)
+                if (maxSubjectLength > 20)
                 {
                     // Truncate subject list if needed
                     var truncatedScores = new List<string>();
-                    var currentLength = baseLength;
+                    var currentLength = baseLength - 1; // -1 for period which we'll add at the end
                     
                     foreach (var score in subjectScores)
                     {
-                        if (currentLength + score.Length + 2 > 160) // +2 for ", "
+                        // +2 for "; " separator
+                        if (currentLength + score.Length + 2 + 1 > 160) // +1 for period
                         {
                             break;
                         }
@@ -1354,7 +1338,7 @@ namespace BluebirdCore.Controllers
                     
                     if (truncatedScores.Any())
                     {
-                        message = $"{studentName}, {shortClassName} - Term {term} {academicYear}: {string.Join(", ", truncatedScores)}";
+                        message = $"{studentName} {shortClassName} Term {term} {academicYear}: {string.Join("; ", truncatedScores)}.";
                     }
                 }
             }

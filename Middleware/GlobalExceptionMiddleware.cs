@@ -1,4 +1,4 @@
-namespace BluebirdCore.Middleware
+namespace SchoolErpSMS.Middleware
 {
     namespace SchoolManagementSystem.Middleware
 {
