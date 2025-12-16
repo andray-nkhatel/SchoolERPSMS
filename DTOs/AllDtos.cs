@@ -280,6 +280,24 @@ namespace SchoolErpSMS.DTOs
     public class AssignSubjectToGradeDto
     {
         public bool IsOptional { get; set; } = false;
+        public bool AutoAssignToStudents { get; set; } = false;
+        public bool AssignToExistingStudents { get; set; } = false;
+        public int? AcademicYearId { get; set; }
+    }
+
+    public class BulkAssignSubjectsToGradeDto
+    {
+        [Required]
+        public List<int> SubjectIds { get; set; } = new List<int>();
+        public bool AutoAssignToStudents { get; set; } = false;
+        public bool AssignToExistingStudents { get; set; } = false;
+        public int? AcademicYearId { get; set; }
+    }
+
+    public class SyncGradeStudentSubjectsDto
+    {
+        public int? AcademicYearId { get; set; }
+        public bool RemoveOrphaned { get; set; } = false;
     }
 
     public class AssignTeacherToSubjectDto

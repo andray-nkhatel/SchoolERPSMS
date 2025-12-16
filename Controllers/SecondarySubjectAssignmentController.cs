@@ -251,27 +251,45 @@ namespace SchoolErpSMS.Controllers
                 var existingAssignment = await _context.StudentSubjects
                     .FirstOrDefaultAsync(ss => ss.StudentId == studentId && ss.SubjectId == dto.SubjectId);
 
+                StudentSubject studentSubject;
+                
                 if (existingAssignment != null)
                 {
-                    return BadRequest(new ApiResponse<StudentSubjectDto>
+                    // If there's an inactive assignment, reactivate it
+                    if (!existingAssignment.IsActive)
                     {
-                        Success = false,
-                        Message = "Subject is already assigned to this student"
-                    });
+                        existingAssignment.IsActive = true;
+                        existingAssignment.DroppedDate = null;
+                        existingAssignment.AssignedBy = dto.AssignedBy;
+                        existingAssignment.AssignedDate = DateTime.UtcNow;
+                        existingAssignment.Notes = dto.Notes;
+                        studentSubject = existingAssignment;
+                    }
+                    else
+                    {
+                        return BadRequest(new ApiResponse<StudentSubjectDto>
+                        {
+                            Success = false,
+                            Message = "Subject is already assigned to this student"
+                        });
+                    }
                 }
-
-                var studentSubject = new StudentSubject
+                else
                 {
-                    StudentId = studentId,
-                    SubjectId = dto.SubjectId,
-                    Notes = dto.Notes,
-                    AssignedBy = dto.AssignedBy,
-                    AssignedDate = DateTime.UtcNow,
-                    EnrolledDate = DateTime.UtcNow,
-                    IsActive = true
-                };
+                    studentSubject = new StudentSubject
+                    {
+                        StudentId = studentId,
+                        SubjectId = dto.SubjectId,
+                        Notes = dto.Notes,
+                        AssignedBy = dto.AssignedBy,
+                        AssignedDate = DateTime.UtcNow,
+                        EnrolledDate = DateTime.UtcNow,
+                        IsActive = true
+                    };
 
-                _context.StudentSubjects.Add(studentSubject);
+                    _context.StudentSubjects.Add(studentSubject);
+                }
+                
                 await _context.SaveChangesAsync();
 
                 var result = new StudentSubjectDto

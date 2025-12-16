@@ -144,22 +144,55 @@ namespace SchoolErpSMS.Services
                     };
                 }
 
+                // Get teacher name for audit trail
+                var teacher = await _context.Users.FindAsync(teacherId);
+                var teacherName = teacher?.FullName ?? "Homeroom Teacher";
+
                 // Check if subject is already assigned
                 var existingAssignment = await _context.StudentSubjects
                     .FirstOrDefaultAsync(ss => ss.StudentId == studentId && ss.SubjectId == dto.SubjectId);
 
                 if (existingAssignment != null)
                 {
+                    // If there's an inactive assignment, reactivate it instead of creating a new one
+                    if (!existingAssignment.IsActive)
+                    {
+                        existingAssignment.IsActive = true;
+                        existingAssignment.DroppedDate = null;
+                        existingAssignment.AssignedBy = teacherName;
+                        existingAssignment.AssignedDate = DateTime.UtcNow;
+                        existingAssignment.Notes = dto.Notes;
+                        
+                        await _context.SaveChangesAsync();
+                        
+                        var reactivatedSubject = await _context.Subjects.FindAsync(dto.SubjectId);
+                        
+                        return new ApiResponse<StudentSubjectDto>
+                        {
+                            Success = true,
+                            Data = new StudentSubjectDto
+                            {
+                                Id = existingAssignment.Id,
+                                StudentId = existingAssignment.StudentId,
+                                SubjectId = existingAssignment.SubjectId,
+                                SubjectName = reactivatedSubject?.Name ?? "Unknown",
+                                SubjectCode = reactivatedSubject?.Code ?? "",
+                                EnrolledDate = existingAssignment.EnrolledDate,
+                                CompletedDate = existingAssignment.CompletedDate,
+                                IsActive = existingAssignment.IsActive,
+                                Notes = existingAssignment.Notes,
+                                AssignedBy = existingAssignment.AssignedBy
+                            },
+                            Message = "Subject re-assigned successfully"
+                        };
+                    }
+                    
                     return new ApiResponse<StudentSubjectDto>
                     {
                         Success = false,
                         Message = "Subject is already assigned to this student"
                     };
                 }
-
-                // Get teacher name for audit trail
-                var teacher = await _context.Users.FindAsync(teacherId);
-                var teacherName = teacher?.FullName ?? "Homeroom Teacher";
 
                 // Create new assignment
                 var studentSubject = new StudentSubject
